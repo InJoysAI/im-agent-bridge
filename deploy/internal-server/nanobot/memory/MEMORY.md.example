@@ -1,0 +1,30 @@
+# Long-term Memory
+
+This file stores important information that should persist across sessions.
+
+## User Information
+
+(Important facts about the user)
+
+## Preferences
+
+(User preferences learned over time)
+
+## Project Context
+
+### MCP Servers
+
+以下是当前环境可用的 Shopify MCP 实例列表。AI Agent 在处理用户请求时，应根据店铺信息选择正确的 MCP 实例。
+
+| MCP Server 名称 | 显示名称 | 品类 | 地区 | 币种 | 时区 | 备注 |
+|----------------|---------|------|------|------|------|------|
+| shopify-store1 | Store One | 综合电商 | 香港 | HKD | Asia/Hong_Kong | 主力店铺 |
+| shopify-store2 | Store Two | 服饰 | 美国 | USD | America/New_York | 北美市场 |
+
+## Important Notes
+
+(Things to remember)
+
+---
+
+*This file is automatically updated by nanobot when important information should be remembered.*

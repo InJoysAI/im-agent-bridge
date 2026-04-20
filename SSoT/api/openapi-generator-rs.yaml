@@ -1,0 +1,2 @@
+packageName: im_agent_bridge_api
+globalProperty: models,modelDocs=false,apis=false,apiTests=false,modelTests=false

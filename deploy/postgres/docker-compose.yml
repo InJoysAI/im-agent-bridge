@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    env_file:
+      - ./.env
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: ${POSTGRES_IMAGE}
+    container_name: ${POSTGRES_CONTAINER_NAME}
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_cron
+      - -c
+      - cron.database_name=${CRON_DATABASE_NAME}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      # 关键：挂载到父目录 /var/lib/postgresql，让 PostgreSQL 18 自动创建版本子目录
+      - postgres_data:/var/lib/postgresql
+    restart: unless-stopped
+
+volumes:
+  postgres_data: # 命名卷，用于持久化数据

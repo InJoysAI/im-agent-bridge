@@ -1,0 +1,349 @@
+openapi: 3.0.0
+info:
+  title: IM Agent Bridge Gateway API
+  version: 1.0.0
+tags: []
+paths:
+  /bridge/reply:
+    post:
+      operationId: Bridge_reply
+      description: 回写：Gateway → Matterbridge
+      parameters:
+        - name: authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                required:
+                  - status
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        '409':
+          description: The request conflicts with the current state of the server.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplyRequest'
+  /gateway/inbound:
+    post:
+      operationId: Gateway_inbound
+      description: 入站：Matterbridge → Gateway
+      parameters:
+        - name: authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboundResponse'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        '429':
+          description: Client error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        '503':
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InboundRequest'
+  /health:
+    get:
+      operationId: health
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                required:
+                  - status
+  /runtime/process:
+    post:
+      operationId: Runtime_process
+      description: 处理：Gateway → Runtime
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeProcessResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeProcessRequest'
+components:
+  schemas:
+    InboundRequest:
+      type: object
+      required:
+        - platform
+        - bridge_gateway_name
+        - raw_message
+      properties:
+        platform:
+          type: string
+        bridge_gateway_name:
+          type: string
+        bridge_channel_name:
+          type: string
+        raw_message:
+          $ref: '#/components/schemas/RawMessage'
+      description: Bridge → Gateway 入站请求
+    InboundResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - accepted
+            - ignored_duplicate
+            - ignored_no_mention
+      description: 入站响应
+    RawMessage:
+      type: object
+      required:
+        - chat_id
+        - chat_type
+        - user_id
+        - message_type
+        - timestamp
+        - message_id
+      properties:
+        chat_id:
+          type: string
+        chat_type:
+          type: string
+          enum:
+            - private
+            - group
+        user_id:
+          type: string
+        message_type:
+          type: string
+          enum:
+            - text
+            - image
+            - audio
+            - video
+            - file
+            - other
+        text:
+          type: string
+        timestamp:
+          type: string
+        message_id:
+          type: string
+        sender_name:
+          type: string
+      description: Bridge 入站消息中的原始消息体
+    ReplyRequest:
+      type: object
+      required:
+        - reply_id
+        - chat_id
+        - platform
+        - text
+        - bridge_gateway_name
+      properties:
+        reply_id:
+          type: string
+        chat_id:
+          type: string
+        platform:
+          type: string
+        text:
+          type: string
+        bridge_gateway_name:
+          type: string
+        bridge_channel_name:
+          type: string
+      description: Gateway → Bridge 回写请求
+    RuntimeProcessRequest:
+      type: object
+      required:
+        - event_id
+        - platform
+        - chat_id
+        - chat_type
+        - user_id
+        - session_id
+        - text
+        - timestamp
+        - bot_id
+      properties:
+        event_id:
+          type: string
+        platform:
+          type: string
+        chat_id:
+          type: string
+        chat_type:
+          type: string
+          enum:
+            - private
+            - group
+        user_id:
+          type: string
+        session_id:
+          type: string
+        text:
+          type: string
+        timestamp:
+          type: string
+        bot_id:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+      description: 标准消息请求对象 (Gateway → Runtime)
+    RuntimeProcessResponse:
+      type: object
+      required:
+        - reply_id
+        - bot_id
+        - platform
+        - chat_id
+        - reply_type
+        - text
+        - session_id
+        - status
+      properties:
+        reply_id:
+          type: string
+        bot_id:
+          type: string
+        platform:
+          type: string
+        chat_id:
+          type: string
+        reply_type:
+          type: string
+          enum:
+            - text
+        text:
+          type: string
+        session_id:
+          type: string
+        status:
+          type: string
+          enum:
+            - success
+            - error
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+      description: 标准回复对象 (Runtime → Gateway)

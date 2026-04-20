@@ -1,0 +1,213 @@
+warning: field `parent_id` is never read
+  --> src/adapters/matterbridge.rs:40:5
+   |
+18 | struct MbMessage {
+   |        --------- field in this struct
+...
+40 |     parent_id: String,
+   |     ^^^^^^^^^
+   |
+   = note: `MbMessage` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `process_with_latency` is never used
+  --> src/adapters/nanobot.rs:26:18
+   |
+16 | impl NanoBotAdapter {
+   | ------------------- method in this implementation
+...
+26 |     pub async fn process_with_latency(
+   |                  ^^^^^^^^^^^^^^^^^^^^
+
+warning: field `status` is never read
+  --> src/adapters/runtime.rs:19:9
+   |
+17 | pub struct StandardReply {
+   |            ------------- field in this struct
+18 |     pub text: String,
+19 |     pub status: String,
+   |         ^^^^^^
+   |
+   = note: `StandardReply` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: trait `RuntimeAdapter` is never used
+  --> src/adapters/runtime.rs:66:11
+   |
+66 | pub trait RuntimeAdapter: Send + Sync {
+   |           ^^^^^^^^^^^^^^
+
+warning: function `runtime_log_write_failures_total` is never used
+  --> src/db/mod.rs:28:8
+   |
+28 | pub fn runtime_log_write_failures_total() -> u64 {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `health_guard` is never used
+  --> src/db/mod.rs:36:14
+   |
+36 | pub async fn health_guard(
+   |              ^^^^^^^^^^^^
+
+warning: function `find_bot_config` is never used
+  --> src/db/bots.rs:64:14
+   |
+64 | pub async fn find_bot_config(
+   |              ^^^^^^^^^^^^^^^
+
+warning: field `sender_name` is never read
+  --> src/models/inbound.rs:27:9
+   |
+19 | pub struct RawMessage {
+   |            ---------- field in this struct
+...
+27 |     pub sender_name: Option<String>,
+   |         ^^^^^^^^^^^
+   |
+   = note: `RawMessage` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `timestamp` is never read
+  --> src/models/standard_message.rs:17:9
+   |
+ 6 | pub struct StandardMessage {
+   |            --------------- field in this struct
+...
+17 |     pub timestamp: String,
+   |         ^^^^^^^^^
+   |
+   = note: `StandardMessage` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `mcp_call_success_total` and `mcp_call_error_total` are never read
+  --> src/observability/metrics.rs:11:9
+   |
+ 6 | pub struct Metrics {
+   |            ------- fields in this struct
+...
+11 |     pub mcp_call_success_total: Counter,
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+12 |     pub mcp_call_error_total: Counter,
+   |         ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `Metrics` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: `gateway` (bin "gateway") generated 10 warnings
+warning: function `reset_db_unavailable_total_for_test` is never used
+   --> src/db/mod.rs:140:8
+    |
+140 | pub fn reset_db_unavailable_total_for_test() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `gateway` (bin "gateway" test) generated 7 warnings (6 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.60s
+warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/main.rs (target/debug/deps/gateway-644f8a1e28a3d25a)
+
+running 92 tests
+test adapters::nanobot::tests::session_not_found_detected_by_http_404 ... ok
+test adapters::nanobot::tests::session_not_found_detected_by_error_body ... ok
+test adapters::nanobot::tests::request_body_shape_is_correct ... ok
+test adapters::nanobot::tests::truncate_at_limit_unchanged ... ok
+test adapters::nanobot::tests::truncate_5000_chars ... ok
+test adapters::nanobot::tests::truncate_above_limit_adds_suffix ... ok
+test bridge_client::tests::bridge_error_display_does_not_leak_token ... ok
+test bridge_client::tests::enforce_bridge_text_limit_noop_when_within_limit ... ok
+test bridge_client::tests::enforce_bridge_text_limit_caps_at_4096 ... ok
+test adapters::nanobot::tests::truncate_unicode_by_chars ... ok
+test adapters::nanobot::tests::connect_error_maps_to_runtime_unavailable ... ok
+test bridge_client::tests::http_409_returns_ok_without_retry ... ok
+test bridge_client::tests::http_200_returns_ok ... ok
+test adapters::nanobot::tests::missing_choices_maps_to_bad_response ... ok
+test adapters::nanobot::tests::normal_response_parsed_correctly ... ok
+test adapters::nanobot::tests::request_contains_correct_session_id ... ok
+test bridge_client::tests::http_400_returns_non_retryable_immediately ... ok
+test bridge_client::tests::http_401_returns_non_retryable_immediately ... ok
+test bridge_client::tests::payload_debug_does_not_leak_bearer_token ... ok
+test bridge_client::tests::truncate_to_512_keeps_text_below_limit ... ok
+test bridge_client::tests::truncate_to_512_preserves_ascii_short_text ... ok
+test bridge_client::tests::truncate_to_512_truncates_over_limit_on_char_boundary ... ok
+test db::channel_bindings::tests::exact_match_returns_bot_id ... ignored, requires DATABASE_URL and seeded channel_bindings (tasks.md §8.0)
+test config::tests::test_from_env_all_set ... ok
+test db::channel_bindings::tests::fallback_match_returns_bot_id ... ignored, requires DATABASE_URL and seeded channel_bindings (tasks.md §8.0)
+test db::channel_bindings::tests::no_match_returns_none ... ignored, requires DATABASE_URL (no slack bindings seeded)
+test db::message_events::tests::insert_pending_duplicate_returns_none_and_only_one_row ... ignored, requires DATABASE_URL and migrated schema with seed data
+test db::message_events::tests::insert_pending_first_time_returns_some_and_pending ... ignored, requires DATABASE_URL and migrated schema with seed data
+test db::message_events::tests::insert_pending_persists_input_text ... ignored, requires DATABASE_URL and migrated schema with seed data
+test db::message_events::tests::mark_processing_updates_status ... ignored, requires DATABASE_URL and migrated schema with seed data
+test db::pool::tests::health_check_returns_ok_when_pg_reachable ... ignored, requires DATABASE_URL_TEST to point to a reachable postgres
+test config::tests::test_from_env_missing_database_url - should panic ... ok
+test db::runtime_logs::tests::insert_runtime_log_writes_row_for_error ... ignored, requires DATABASE_URL and migrated schema with seed data
+test db::runtime_logs::tests::sanitize_payload_handles_non_object_without_panic ... ok
+test db::runtime_logs::tests::sanitize_request_removes_user_id_and_input_text ... ok
+test db::sessions::tests::duplicate_upsert_is_idempotent ... ignored, requires DATABASE_URL and migrated schema (goose up 00003) with seed_db.sh
+test db::sessions::tests::first_insert_creates_record ... ignored, requires DATABASE_URL and migrated schema (goose up 00003) with seed_db.sh
+test handlers::health::tests::test_health_returns_200_ok ... ok
+test handlers::inbound::tests::duplicate_message_returns_ignored_duplicate ... ignored, requires DATABASE_URL and migrated schema
+test handlers::inbound::tests::group_mention_accepted_with_real_db ... ignored, requires DATABASE_URL and migrated schema
+test handlers::inbound::tests::group_without_mention_ignored_with_real_db ... ignored, requires DATABASE_URL and migrated schema
+test db::runtime_logs::tests::insert_runtime_log_skips_write_when_status_success ... ok
+test bridge_client::tests::retryable_then_success ... ok
+test bridge_client::tests::http_503_four_attempts_exhausted ... ok
+test db::runtime_logs::tests::sanitize_response_truncates_and_redacts_error_message ... ok
+test handlers::inbound::tests::mention_filter_bypasses_private_chat ... ok
+test handlers::inbound::tests::mention_filter_bypasses_when_disabled ... ok
+test handlers::inbound::tests::mention_filter_hits_group_require_mention_without_match ... ok
+test handlers::inbound::tests::mention_filter_ignores_missing_username_when_required ... ok
+test handlers::inbound::tests::mention_filter_matches_case_insensitive ... ok
+test handlers::inbound::tests::mention_filter_not_called_for_empty_text_in_flow ... ok
+test handlers::inbound::tests::mention_filter_requires_at_prefix ... ok
+test handlers::inbound::tests::invalid_json_returns_400 ... ok
+test handlers::inbound::tests::invalid_token_returns_401 ... ok
+test handlers::inbound::tests::missing_platform_returns_400 ... ok
+test handlers::inbound::tests::image_message_returns_400_with_ignore_tip ... ok
+test handlers::inbound::tests::strip_mention_keeps_original_when_not_found ... ok
+test handlers::inbound::tests::strip_mention_removes_at_username_prefix ... ok
+test handlers::inbound::tests::strip_mention_removes_case_insensitive_everywhere ... ok
+test handlers::inbound::tests::strip_mention_removes_multiple_mentions ... ok
+test handlers::inbound::tests::truncate_input_text_keeps_full_when_at_or_below_limit ... ok
+test handlers::inbound::tests::truncate_input_text_truncates_unicode_by_chars ... ok
+test middleware::auth::tests::invalid_token_returns_401 ... ok
+test middleware::auth::tests::no_auth_header_returns_401 ... ok
+test middleware::rate_limit::tests::different_chat_ids_are_independent ... ok
+test middleware::rate_limit::tests::five_consecutive_requests_allowed ... ok
+test middleware::auth::tests::valid_token_passes ... ok
+test handlers::inbound::tests::no_token_returns_401 ... ok
+test middleware::rate_limit::tests::sixth_request_rate_limited ... ok
+test handlers::metrics::tests::metrics_handler_returns_200_and_text_plain ... ok
+test models::inbound::tests::error_response_serializes_correctly ... ok
+test models::inbound::tests::inbound_status_serializes_to_snake_case ... ok
+test models::inbound::tests::inbound_request_deserializes_full_payload ... ok
+test models::inbound::tests::message_type_deserializes_from_snake_case ... ok
+test models::session::tests::group_generates_group_session_id ... ok
+test models::session::tests::private_and_group_same_chat_id_are_distinct ... ok
+test models::session::tests::private_generates_private_session_id ... ok
+test models::session::tests::unknown_chat_type_produces_unknown_segment ... ok
+test models::standard_message::tests::build_generates_uuid_v4_event_id ... ok
+test models::standard_message::tests::build_populates_required_fields_non_empty ... ok
+test observability::metrics::tests::encode_reflects_counter_increment ... ok
+test observability::metrics::tests::metrics_new_registers_all_counters ... ok
+test observability::sanitize::tests::redacts_exact_sensitive_values ... ok
+test observability::sanitize::tests::keeps_non_sensitive_fields_intact ... ok
+test observability::sanitize::tests::redacts_sensitive_field_by_name ... ok
+test observability::tests::init_subscriber_like_pipeline_outputs_json ... ok
+test observability::tests::json_log_sanitization_keeps_valid_json_and_redacts_sensitive_values ... ok
+test adapters::nanobot::tests::timeout_maps_to_runtime_timeout ... ok
+test middleware::rate_limit::tests::lru_evicts_inactive_keys ... ok
+test handlers::inbound::tests::db_unavailable_is_returned_before_rate_limit ... ok
+test handlers::inbound::tests::inbound_returns_503_and_increments_counter_when_db_unavailable ... ok
+test db::pool::tests::health_check_returns_err_when_pg_unreachable ... ok
+
+test result: ok. 78 passed; 0 failed; 14 ignored; 0 measured; 0 filtered out; finished in 30.02s
+
+     Running tests/inbound_mention_filter.rs (target/debug/deps/inbound_mention_filter-75307a18c9a379a9)
+
+running 7 tests
+test empty_text_is_rejected_before_mention_filter ... ignored, requires DATABASE_URL and integration environment
+test group_with_lowercase_mention_is_accepted ... ignored, requires DATABASE_URL and integration environment
+test group_with_mention_is_accepted ... ignored, requires DATABASE_URL and integration environment
+test group_without_mention_is_ignored_no_mention ... ignored, requires DATABASE_URL and integration environment
+test mention_filter_precedes_rate_limit ... ignored, requires DATABASE_URL and integration environment
+test private_chat_is_accepted_even_when_require_mention_true ... ignored, requires DATABASE_URL and integration environment
+test require_mention_false_keeps_full_response_behavior ... ignored, requires DATABASE_URL and integration environment
+
+test result: ok. 0 passed; 0 failed; 7 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,14 @@
+# 使用官方 PostgreSQL 18 镜像（与当前运行版本保持一致）
+FROM postgres:18-bookworm
+
+# 安装 PostgreSQL 18 对应的 pg_cron 官方包
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        postgresql-18-cron; \
+    rm -rf /var/lib/apt/lists/* 
+
+WORKDIR /
+
+CMD ["postgres", "-c", "shared_preload_libraries=pg_cron"]

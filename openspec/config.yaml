@@ -1,0 +1,201 @@
+schema: spec-driven
+
+context: |
+  # Purpose
+  IM Agent Bridge 是一个通用 IM → AI Agent 接入骨架（MVP）。
+  目标：最小闭环、架构边界清晰、Runtime 可替换、渠道可扩展。
+
+  三层架构：Channel Layer（Telegram） → Bridge Layer（Matterbridge） → Core Layer（Gateway / Runtime Adapter / NanoBot Runtime）。
+  消息链路：Telegram 文本消息 → Matterbridge 桥接 → Gateway 标准化/解析/持久化 → RuntimeAdapter 调用 NanoBot → NanoBot 调用 Shopify MCP → Gateway 回写 → Telegram 原会话。
+
+  Core Layer 分工：
+  - Gateway（Rust）：Core 对外唯一入口；Bearer 校验、消息标准化、bot_id 解析、session 管理、Runtime 分发、回写协调、持久化、可观测性
+  - Runtime Adapter：Gateway 内部模块（Strategy Pattern）；当前仅 NanoBotAdapter
+  - NanoBot（Python）：AI Agent Runtime；管理上下文记忆并基于 MEMORY.md 自主选择 MCP
+
+  # Tech Stack
+  - Gateway：Rust（MUST）；tokio（MUST）；serde/serde_json（MUST）；uuid（MUST，应用层生成）；actix-web 或 axum（SHOULD）；sqlx 或 diesel（SHOULD）；reqwest（SHOULD）
+  - Runtime：NanoBot（HKUDS/nanobot，MUST）；Python 3.10+（MUST）
+  - DB：PostgreSQL（MUST；建议 15+）；Goose（MUST，SSoT：SSoT/schema/migrations/）
+  - API Contract：TypeSpec（MUST，SSoT：SSoT/api/main.tsp）
+  - Infra：Docker（MUST，每台服务器独立运行容器）；Docker Compose（MUST，Internal Server 服务编排）；多服务器部署—— Matterbridge 在 Edge Server，其余在 Internal Server，私有网络互联
+  - Integrations：Matterbridge（MUST）；Telegram Bot API（MUST）；Shopify MCP（MUST，geli2001/shopify-mcp，Node.js，以 `npx shopify-mcp` 子进程运行在 nanobot 容器内，每店铺一个实例）
+
+  禁止项（MUST NOT）：
+  - Redis/缓存层（MVP）
+  - 独立管理后台（MVP）
+  - 富媒体消息处理（MVP 仅文本）
+  - 独立长期记忆系统（MVP）
+  - MCP Router（不单独引入；MCP 由 Runtime 自主选择）
+
+  # Code Style
+  - Rust（Gateway）：tokio 异步；用 typed error（thiserror 或等价方案）；生产路径禁止 .unwrap()/.expect()；tracing 结构化日志；禁止在任何日志级别输出敏感凭证
+  - Python（NanoBot）：PEP 8；不修改 NanoBot 内部逻辑，使用 MEMORY.md / config.json（tools.mcpServers）做配置
+
+  # Architecture Patterns
+  - 三层边界不可跨越：Bridge 仅与 Gateway 通信；Bridge 不直接访问 Runtime/DB；Runtime 不直接访问 Bridge/Telegram（BR-020/021/023）
+  - Gateway 是 Core 对外唯一入口；Runtime 可替换：通过 RuntimeAdapter Strategy Pattern（BR-022）
+  - Gateway 职责边界（MUST NOT）：不承担模型推理；不做 MCP 选择/路由；不保存 MCP 凭证与 MCP 实例明细（criterion.md §3.4 MUST NOT）
+  - 数据库熔断：PostgreSQL 不可用时短路熔断，所有入站请求返回 503；禁止在无 DB 时向 Runtime 传递上下文（BR-041，“宁可报错不可错乱”）
+  - 入站限流：Token Bucket，维度 chat_id，阈值 5 msg/sec/chat_id；超限返回 429，不调用 Runtime，不写 message_events（BR-055）
+  - 幂等键：
+    - 入站：(platform, bridge_gateway_name, COALESCE(bridge_channel_name,''), bridge_message_id)；重复到达返回 200 + ignored_duplicate，不重复写入 message_events（BR-042）
+    - 回写：reply_id（Gateway 生成，全局唯一）
+  - 回写重试：指数退避最多 3 次（1s/2s/4s）；HTTP 409 视为成功（回写已完成）（BR-062）
+  - 可观测性：每次处理生成 trace_id，覆盖 Bridge→Gateway→Runtime→MCP→回写；必须实现 11 个 Counter：
+    messages_received_total / messages_replied_total / runtime_call_success_total / runtime_call_timeout_total /
+    mcp_call_success_total / mcp_call_error_total / reply_write_success_total / reply_write_error_total /
+    rate_limited_total / db_unavailable_total / runtime_log_write_failures_total
+
+  # Domain Context
+  StandardMessage（入站标准消息对象）必须字段（BR-004）：
+  - event_id（UUID，Gateway 生成）
+  - platform（MVP: "telegram"）
+  - chat_id
+  - chat_type（"private" | "group"）
+  - user_id
+  - session_id（Gateway 生成）
+  - text（max 4096 chars；超长入站在标准化前拒绝）
+  - timestamp（ISO 8601）
+  - bot_id（由 Gateway 查 channel_bindings 解析，不接受外部传入）
+
+  session_id 生成规则：
+  - 私聊：telegram:private:{chat_id}（BR-010）
+  - 群聊：telegram:group:{chat_id}（BR-011）
+  - 私聊/群聊上下文隔离（BR-012）
+  - 群聊共享上下文（同一群共享 session_id，BR-013）
+  - MVP 不引入 thread_id 或独立 group_id（BR-015）
+
+  bot_id 解析（唯一来源 channel_bindings）：
+  - 查询键：(platform, bridge_gateway_name, bridge_channel_name)
+  - bridge_channel_name 为 NULL 时退化为 platform + bridge_gateway_name（COALESCE 降级语义）
+  - 未找到：拒绝处理 + 记录警告日志（BR-004）
+
+  统一错误码（大小写必须一致）：
+  - RUNTIME_TIMEOUT（Gateway → Runtime 15s 超时）：用户提示“抱歉，当前无法处理您的请求，请稍后再试。”
+  - RUNTIME_UNAVAILABLE：同上
+  - RUNTIME_BAD_RESPONSE：同上
+  - RUNTIME_SESSION_NOT_FOUND：Gateway 清空 runtime_session_key 并重建
+  - MCP_TIMEOUT（Runtime → MCP 10s 超时）：用户提示“工具暂不可用”
+  - MCP_UNAVAILABLE：用户提示“工具暂不可用”（不暴露技术细节）
+
+  # Important Constraints
+  - 消息长度：
+    - 入站文本 > 4096：拒绝处理 + 返回提示 + 记录日志（含原始长度）；禁止截断后继续处理（BR-002）
+    - 出站文本 > 4096：截断至 4096 并追加截断提示（如“…（内容已截断）”）（BR-003）
+    - 持久化：message_events.input_text/output_text 落库前截断至 512（BR-070）
+  - 超时预算：
+    - Gateway → Runtime：≤ 15s hard timeout
+    - Runtime → MCP：≤ 10s（嵌套在 15s 内）
+    - 端到端 P95：≤ 5s
+    - NanoBot 服务端内部超时：120s（Gateway 侧不依赖）
+  - 安全（硬约束）：
+    - Bridge ↔ Gateway：HTTPS（TLS 1.2+）+ Authorization: Bearer <token>；无降级路径；Token 无效返回 401
+    - Bridge/Gateway/Runtime API 仅允许 localhost 或受控内网访问；Bridge API 禁止公网暴露
+    - 凭证（Telegram Token、Bearer Token、Shopify client_secret、PG 密码等）必须通过环境变量/Secret 注入，禁止硬编码与日志输出
+    - Gateway ↔ Runtime：MVP 裸 HTTP（TD-001，Post-MVP 加 Token/mTLS）
+  - 数据治理：
+    - message_events 保留 30 天；runtime_logs 保留 14 天
+    - runtime_logs 的 request/response payload 仅 status=error 时写入，且必须脱敏 PII（移除 user_id、原文消息内容等）
+  - MVP 范围锁定：单渠道（Telegram）/仅文本/单 Runtime（NanoBot）；超出范围必须走 OpenSpec 提案流程
+
+  # Database Design
+  - SSoT：SSoT/schema/migrations/（Goose SQL）
+  - 核心表（5 张）：bots / channel_bindings / sessions / message_events / runtime_logs
+  - 主键：UUID（应用层生成，Rust uuid crate）
+  - 幂等索引：
+    - message_events 入站唯一索引：(platform, bridge_gateway_name, COALESCE(bridge_channel_name,''), bridge_message_id)
+    - message_events 回写唯一索引：reply_id
+  - sessions.runtime_session_key：NanoBot 特化为等于 session_id；收到 RUNTIME_SESSION_NOT_FOUND 时清空并重建
+
+  # API Contracts
+  - SSoT：SSoT/api/main.tsp（TypeSpec）
+  - POST /gateway/inbound（Bridge → Gateway，HTTPS + Bearer Token）
+    - 幂等键：(platform, bridge_gateway_name, COALESCE(bridge_channel_name,''), bridge_message_id)
+    - 关键错误：401（token 无效）、404（绑定缺失）、429（限流）、503（DB 不可用）
+  - POST /bridge/reply（Gateway → Bridge，HTTPS + Bearer Token）
+    - 幂等键：reply_id；409 视为成功语义
+  - Gateway → Runtime：按 bots.runtime_type + bots.runtime_endpoint 通过 RuntimeAdapter 直接调用 Runtime 原生 HTTP 接口（内网 HTTP，无认证/MVP）
+
+  # Testing Strategy
+  - 单元测试：覆盖率 ≥ 80%，cargo test；覆盖标准化/session_id/长度校验/bot_id 解析
+  - 集成测试：覆盖率 ≥ 70%，Rust integration tests + testcontainers；覆盖 Gateway↔PostgreSQL、Gateway↔RuntimeAdapter
+  - E2E：关键路径 100%，Telegram → Bridge → Gateway → Runtime → 回写
+  - BDD：Given / When / Then（Gherkin）
+  - DoD：
+    - 所有 BDD 场景通过
+    - 单元测试覆盖率 ≥ 80%
+    - Telegram 文本消息接入成功率 ≥ 95%
+    - 回复回写成功率 ≥ 95%
+    - Shopify MCP 成功调用率 ≥ 90%
+    - P95 响应时间 ≤ 5s
+    - 安全测试无高危漏洞
+    - UAT 签收完成
+
+  # Git Workflow
+  - SSoT-first（不可颠倒）：DB 迁移（SSoT/schema/migrations/）→ API 合约（SSoT/api/main.tsp）→ 业务逻辑代码
+  - OpenSpec 提案：新功能/架构调整/MVP 范围外/Breaking Change 必须先创建提案并评审通过：/context-openspec proposal <change-id>
+  - 提案流程收口：
+    - validate：node design/context-dev/tools/specflow/specflow.mjs validate <change-id> --strict
+    - archive：node design/context-dev/tools/specflow/specflow.mjs archive <change-id> --yes
+  - Goose 迁移命名：沿用仓库序号风格（如 00001_init.sql），格式建议 00NNN_description.sql；禁止修改已执行迁移文件，变更必须新增迁移
+
+  # External Dependencies
+  - Telegram Bot API：Channel Layer；经由 Matterbridge 接入（Gateway 不直连 Telegram API）
+    - 风险：依赖 Telegram 可用性
+  - Matterbridge（Go）：Bridge Layer；负责 Telegram ↔ Gateway 转发；Bridge API 禁止公网暴露
+    - 风险：RISK-005（Matterbridge 崩溃/断连导致入站与回写中断）
+  - NanoBot（HKUDS/nanobot，Python 3.10+）：AI Agent Runtime
+    - 风险：RISK-001（Runtime 单点故障）
+    - 风险：RISK-002（进程重启导致本地会话状态丢失；Gateway 需在 RUNTIME_SESSION_NOT_FOUND 时清空 runtime_session_key 并重建）
+  - Shopify MCP：工具调用层；每店铺一个独立容器实例
+    - 风险：RISK-003（外部 SaaS 可用性依赖；不可用时返回“工具暂不可用”，不暴露技术细节）
+  - PostgreSQL：持久化层
+    - 风险：RISK-004（不可用时触发熔断，入站统一 503）
+  - 安全风险：RISK-006（Bridge ↔ Gateway Bearer Token 泄露 → 伪造入站消息；需环境变量注入+内网隔离+及时轮换）
+  - 适配差距：RISK-007（TAD Push 模型 POST /gateway/inbound vs Matterbridge 原生 Pull API GET /api/stream；需实现适配层/plugin/webhook 桥接以满足 Push 语义）
+
+
+rules:
+  proposal:
+    - "新功能、架构调整、MVP 范围外需求、Breaking Change 必须先通过 OpenSpec 提案（/context-openspec proposal <change-id>），评审通过后方可实施（criterion.md §6）"
+    - "MVP 范围锁定：单渠道（Telegram）、文本消息、单 Runtime（NanoBot）；超出 MVP 范围的需求必须走提案流程，不得直接实现"
+
+  specs:
+    - "入站消息长度超过 4096 字符时：拒绝处理 + 返回用户提示 + 记录日志（含原始长度）；禁止截断入站消息后继续处理（BR-002）"
+    - "出站回复超过 4096 字符时：截断至 4096 并追加截断提示，禁止静默截断（BR-003）"
+    - "非文本消息（图片/贴纸/语音等）收到时：不进入主处理链路，不得抛出异常（BR-001）"
+    - "Bearer Token 无效时必须返回 401，无降级路径；有效时方可处理请求（BR-031）"
+    - "回写 Bridge 失败时必须指数退避重试最多 3 次（1s/2s/4s）；HTTP 409 视为成功（BR-062）"
+    - "按 chat_id 维度实施 Token Bucket 限流，阈值 5 msg/sec；超限返回 429，不调用 Runtime，不写 message_events（BR-055）"
+    - "Gateway → Runtime 调用超时阈值 15s；MCP 工具调用超时阈值 10s（嵌套在前者内）（BR-051, BR-052）"
+    - "端到端 P95 响应时间目标 ≤ 5s，超过时上报慢响应指标（BR-050）"
+    - "所有错误场景必须有可见的日志或用户侧提示，禁止静默失败（BR-063）"
+
+  design:
+    - "Bridge Layer 不得直接调用 Runtime 或 PostgreSQL，只能通过 Gateway HTTP 接口通信（BR-020, BR-021）"
+    - "Gateway 是 Core Layer 对外唯一入口；Runtime 不得直接暴露 Telegram 端口或承担系统主入口（BR-023）"
+    - "替换 Runtime 时只修改 RuntimeAdapter 层，不得修改 Channel/Bridge 核心逻辑（BR-022）"
+    - "bot_id 必须由 Gateway 查询 channel_bindings 表解析，禁止外部请求直接传入 bot_id（BR-004）"
+    - "MVP 阶段所有回复仅输出文本，不输出按钮、卡片、图片、富媒体（BR-005）"
+    - "私聊 session_id = telegram:private:{chat_id}，群聊 session_id = telegram:group:{chat_id}（BR-010, BR-011）"
+    - "私聊与群聊上下文必须严格隔离，禁止相互污染（BR-012）"
+    - "MVP 阶段禁止引入 thread_id 或独立 group_id（BR-015）"
+    - "PostgreSQL 不可用时必须短路熔断（Circuit Break），所有入站请求返回 503，禁止在无 DB 时向 Runtime 传递上下文（BR-041）"
+    - "Bridge ↔ Gateway 必须使用 HTTPS（TLS 1.2+）+ Bearer Token；API 端点禁止暴露到公网，仅允许 localhost 或受控内网访问（criterion.md §4）"
+    - "所有凭证（Bearer Token、Telegram Token、Shopify API Key 等）必须通过环境变量注入，禁止硬编码到代码或镜像（BR-030）"
+    - "日志禁止在任何级别记录 Bearer Token、Shopify client_secret 等敏感凭证（cross_cutting_concepts.md）"
+    - "所有 DB 查询必须携带 bot_id 作为过滤条件，确保跨 Bot 数据隔离（BR-032）"
+    - "PostgreSQL 不存储 MCP 配置或密钥引用；MCP 凭证随 Runtime/MCP 容器环境管理（BR-033）"
+    - "Gateway MUST NOT：不承担模型推理；不做 MCP 选择/路由；不保存 MCP 凭证与 MCP 实例明细（criterion.md §3.4 MUST NOT）"
+
+  tasks:
+    - "DB Schema 变更必须先写 Goose 迁移文件（SSoT/schema/migrations/），禁止直接执行裸 DDL（criterion.md）"
+    - "API 接口变更必须先修改 SSoT/api/main.tsp（TypeSpec），禁止直接修改实现代码绕过合约（criterion.md）"
+    - "完成提案后必须执行：node design/context-dev/tools/specflow/specflow.mjs validate <change-id> --strict；合并后归档：node design/context-dev/tools/specflow/specflow.mjs archive <change-id> --yes（criterion.md §6）"
+    - "所有核心表主键使用 UUID，由应用层（Rust uuid crate）生成，不依赖 DB 自增序列"
+    - "入站幂等键为 (platform, bridge_gateway_name, COALESCE(bridge_channel_name,''), bridge_message_id)，重复到达时不重复写入 message_events（BR-042）"
+    - "回写幂等键为 reply_id（Gateway 生成），同一回复不得重复发出（BR-042）"
+    - "input_text / output_text 落库前必须截断至 512 字符（BR-070）"
+    - "runtime_logs.request_payload / response_payload 仅 status=error 时写入，且必须脱敏 PII（移除 user_id、原文消息内容等）"
+    - "每次消息处理必须生成 trace_id，覆盖完整链路；并实现全部 11 个 Counter 指标（cross_cutting_concepts.md）"

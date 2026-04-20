@@ -1,0 +1,38 @@
+# {{project_name}}
+
+> **Generated At**: {{generated_at}}
+
+## Project Criterion
+
+This project follows a project criterion. See: @.context/criterion.md
+
+## Quick Rules
+
+- **Schema changes** → Create Goose migration file in `{{schema_path}}`, then run `goose up`
+- **API changes** → Modify `{{api_path}}` first, then `tsp compile`
+- **Feature changes** → Create proposal first with `{{proposal_command}}`
+
+## Core Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/context-init` | Initialize Context |
+| `/context-openspec` | Initialize/enhance OpenSpec |
+| `/context-openspec proposal <change-id> [roadmap-doc]` | Create change proposal (optionally specify roadmap/outline doc) |
+| `/context-start` | Implement change |
+| `/context-check` | Check status |
+| `/context-update` | Maintain Context |
+
+## Tech Stack Constraints
+
+{{tech_stack_constraints}}
+
+## MUST NOT Rules
+
+{{must_not_rules}}
+
+## Related Docs
+
+- `.context/criterion.md` — Full project criterion
+- `.context/architecture/tech_stack.md` — Tech stack details
+- `openspec/config.yaml` — Project information

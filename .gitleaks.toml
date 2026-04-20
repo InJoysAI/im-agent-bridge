@@ -1,0 +1,12 @@
+[allowlist]
+description = "Known test fixtures and documentation placeholders"
+commits = [
+  "ef014998ece4435532d72d9b286d158de355d063",
+]
+paths = [
+  '''.context/architecture/deployment_view.md''',
+]
+regexes = [
+  '''shpat_0123456789abcdef0123456789abcdef''',
+  '''verys3cret''',
+]

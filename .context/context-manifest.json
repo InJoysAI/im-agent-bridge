@@ -1,0 +1,208 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-04-12T23:17:00+08:00",
+  "last_modified": "2026-04-20T00:20:23+08:00",
+  "generator": "Context-Dev-Agent v1.0",
+  "project": {
+    "name": "im-agent-bridge",
+    "path": "/Users/chenaifeiyang/Desktop/wecloud/injoysai/im-agent-bridge"
+  },
+  "sources": {
+    "PRD": {
+      "path": ".context/domain/source/IM-Agent-Bridge-PRD.md",
+      "type": "product_requirements",
+      "status": "authoritative"
+    },
+    "ARCHITECTURE": {
+      "path": ".context/architecture/source/IM-Agent-Bridge-TAD.md",
+      "type": "system_architecture",
+      "status": "authoritative"
+    },
+    "DATABASE": {
+      "path": ".context/db/source/IM-Agent-Bridge-TAD.md",
+      "type": "database_design",
+      "status": "authoritative"
+    }
+  },
+  "generated_files": {
+    "root": [
+      ".context/README.md",
+      ".context/AGENTS.md",
+      ".context/criterion.md",
+      ".context/context-manifest.json"
+    ],
+    "architecture": [
+      ".context/architecture/README.md",
+      ".context/architecture/system_design.md",
+      ".context/architecture/tech_stack.md",
+      ".context/architecture/security_policy.md",
+      ".context/architecture/api_strategy.md",
+      ".context/architecture/runtime_view.md",
+      ".context/architecture/deployment_view.md",
+      ".context/architecture/cross_cutting_concepts.md",
+      ".context/architecture/risks_and_debt.md"
+    ],
+    "domain": [
+      ".context/domain/README.md",
+      ".context/domain/business_rules.md",
+      ".context/domain/user_journeys.md",
+      ".context/domain/edge_cases.md",
+      ".context/domain/testing_strategy.md",
+      ".context/domain/risks_and_debt.md",
+      ".context/domain/domain_model.md"
+    ],
+    "db": [
+      ".context/db/README.md",
+      ".context/db/schema_design.md",
+      ".context/db/performance_tuning.md",
+      ".context/db/migrations_and_ssot.md",
+      ".context/db/security_hardening.md",
+      ".context/db/observability.md"
+    ],
+    "ui": [],
+    "legacy": [],
+    "openspec": [
+      ".context/openspec/integration.md"
+    ]
+  },
+  "pending_generation": {
+    "openspec": {
+      "trigger": "/context-openspec",
+      "expected_files": [
+        "openspec/config.yaml",
+        "openspec/proposal-roadmap.md",
+        "openspec/specs/",
+        "openspec/changes/"
+      ],
+      "status": "initialized",
+      "synced_proposals": [
+        {
+          "change_id": "feat-runtime-reply-bridge",
+          "synced_at": "2026-04-17T13:40:00+08:00",
+          "mode": "apply",
+          "touched_context_files": [
+            ".context/architecture/api_strategy.md",
+            ".context/architecture/risks_and_debt.md",
+            ".context/architecture/cross_cutting_concepts.md",
+            ".context/context-manifest.json"
+          ],
+          "deviation_notes": "wire 端点改为 /api/message（Matterbridge 1.26）；入站改为 /api/messages polling；SSoT /bridge/reply 契约保留，对齐留给 fix-bridge-reply-ssot-align"
+        },
+        {
+          "change_id": "feat-runtime-reply-bridge",
+          "synced_at": "2026-04-17T14:19:00+08:00",
+          "mode": "apply",
+          "touched_context_files": [
+            ".context/architecture/README.md",
+            ".context/criterion.md",
+            ".context/architecture/system_design.md",
+            ".context/architecture/runtime_view.md",
+            ".context/architecture/deployment_view.md",
+            ".context/architecture/api_strategy.md",
+            ".context/context-manifest.json"
+          ],
+          "deviation_notes": "wire 端点改为 /api/message（Matterbridge 1.26）；入站改为 /api/messages polling；SSoT /bridge/reply 契约保留，对齐留给 fix-bridge-reply-ssot-align"
+        },
+        {
+          "change_id": "feat-observability-logging",
+          "synced_at": "2026-04-18T00:49:00+08:00",
+          "mode": "apply",
+          "touched_context_files": [
+            ".context/architecture/cross_cutting_concepts.md",
+            ".context/architecture/tech_stack.md",
+            ".context/architecture/security_policy.md",
+            ".context/context-manifest.json"
+          ],
+          "deviation_notes": "tracing 升 MUST + tracing-subscriber 新增 MUST；脱敏清单扩展至 6 个高敏感键名；TAD §11.3 补充 event_id=trace_id MVP 字段名说明及 Gateway/Runtime 8+1 类事件分工"
+        },
+        {
+          "change_id": "fix-bridge-reply-chat-routing",
+          "synced_at": "2026-04-20T00:03:00+08:00",
+          "mode": "apply",
+          "touched_context_files": [
+            ".context/architecture/deployment_view.md",
+            ".context/context-manifest.json"
+          ],
+          "deviation_notes": "E2E 验证证实 Matterbridge intra-gateway 路由不使用 POST payload channel 字段过滤 inout，完整隔离需分 gateway（CBECOpsBot-private / CBECOpsBot-group）；api_strategy.md §2.2 已在前序提案更新；deployment_view.md 同步更新 matterbridge.toml 示例、env 变量名（TELEGRAM_CHAT_ID_PRIVATE/GROUP）、消息 Schema 及 AI 引用指南"
+        },
+        {
+          "change_id": "fix-bridge-reply-chat-routing",
+          "synced_at": "2026-04-20T00:20:23+08:00",
+          "mode": "apply",
+          "touched_context_files": [
+            ".context/architecture/api_strategy.md",
+            ".context/architecture/deployment_view.md",
+            ".context/domain/edge_cases.md",
+            ".context/context-manifest.json"
+          ],
+          "deviation_notes": "同步 OpenSpec 归档版提案：明确 channel 字段为语义标注且不用于 Matterbridge 1.26 intra-gateway inout 过滤；隔离必须通过每 chat 独立 gateway 实现；补充 edge case：telegram inout channel 配置失配通常表现为误投递（需依赖 reply_id 日志与 reply_write_error_total 可观测性排查）。"
+        }
+      ]
+    },
+    "gateway": {
+      "trigger": "首个实施提案",
+      "expected_path": "gateway/",
+      "status": "initialized"
+    },
+    "deploy": {
+      "trigger": "部署相关提案",
+      "expected_path": "deploy/",
+      "status": "initialized"
+    }
+  },
+  "ssot": {
+    "schema": {
+      "tool": "Goose SQL",
+      "path": "SSoT/schema/migrations/",
+      "status": "initialized"
+    },
+    "api": {
+      "tool": "TypeSpec",
+      "path": "SSoT/api/",
+      "status": "initialized",
+      "files": [
+        "SSoT/api/tspconfig.yaml",
+        "SSoT/api/main.tsp",
+        "SSoT/api/models/"
+      ]
+    }
+  },
+  "runtime_artifacts": {
+    "_note": "以下文件属于 Agent Runtime 部署产物，不入仓库版本管理",
+    "MEMORY.md": {
+      "description": "NanoBot Agent Runtime 上下文记忆文件（MCP 实例声明，TAD §9.4.1）",
+      "owner": "Agent Runtime 运维",
+      "spec_reference": "TAD §9.4.1"
+    },
+    ".env": {
+      "description": "MCP 凭证注入文件（Shopify client_id / client_secret / domain）",
+      "owner": "Agent Runtime 运维"
+    }
+  },
+  "ai_tools": {
+    "antigravity": {
+      "path": ".agent/workflows/",
+      "status": "configured"
+    },
+    "claude": {
+      "path": ".claude/commands/",
+      "status": "configured"
+    },
+    "windsurf": {
+      "path": ".windsurf/workflows/",
+      "status": "configured"
+    },
+    "qoder": {
+      "path": ".qoder/commands/",
+      "status": "configured"
+    },
+    "opencode": {
+      "path": ".opencode/commands/",
+      "status": "configured"
+    },
+    "kilocode": {
+      "path": ".kilocode/workflows/",
+      "status": "configured"
+    }
+  }
+}

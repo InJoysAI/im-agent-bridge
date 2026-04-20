@@ -1,0 +1,45 @@
+{
+  "api": {
+    "host": "0.0.0.0"
+  },
+  "providers": {
+    "openai": {
+      "apiKey": "${LLM_API_KEY}"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "openai/gpt-4o"
+    }
+  },
+  "tools": {
+    "mcpServers": {
+      "shopify-store1": {
+        "command": "npx",
+        "args": [
+          "shopify-mcp",
+          "--clientId",
+          "${SHOPIFY_STORE1_CLIENT_ID}",
+          "--clientSecret",
+          "${SHOPIFY_STORE1_CLIENT_SECRET}",
+          "--domain",
+          "${SHOPIFY_STORE1_DOMAIN}"
+        ],
+        "toolTimeout": 10
+      },
+      "shopify-store2": {
+        "command": "npx",
+        "args": [
+          "shopify-mcp",
+          "--clientId",
+          "${SHOPIFY_STORE2_CLIENT_ID}",
+          "--clientSecret",
+          "${SHOPIFY_STORE2_CLIENT_SECRET}",
+          "--domain",
+          "${SHOPIFY_STORE2_DOMAIN}"
+        ],
+        "toolTimeout": 10
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+# === Telegram 配置 ===
+[telegram.mytelegram]
+Token="${TELEGRAM_BOT_TOKEN}"
+RemoteNickFormat="{NICK}"
+
+# === API 模式配置 ===
+# BindAddress 设置为 0.0.0.0:4242（容器内监听，宿主机端口映射绑定至 ${EDGE_PRIVATE_IP}:4242）
+# 公网无法直接访问；Internal Server 通过私有网络访问 ${EDGE_PRIVATE_IP}:4242
+# Gateway inbound URL 示例：http://<internal-server-ip>:8080/gateway/inbound
+[api.myapi]
+BindAddress="0.0.0.0:4242"
+Buffer=1000
+RemoteNickFormat="{NICK}"
+
+# === 网关配置 ===
+# 每个 chat 独立 gateway，避免 Matterbridge intra-gateway 广播（入站/出站均隔离）。
+# bridge_gateway_name 对应 channel_bindings 表中的 bridge_gateway_name 字段。
+
+# 私聊
+[[gateway]]
+name="CBECOpsBot-private"
+enable=true
+
+[[gateway.inout]]
+account="telegram.mytelegram"
+# Telegram 私聊 chat ID（正整数）
+channel="${TELEGRAM_CHAT_ID_PRIVATE}"
+
+[[gateway.inout]]
+account="api.myapi"
+channel="api"
+
+# 群聊
+[[gateway]]
+name="CBECOpsBot-group"
+enable=true
+
+[[gateway.inout]]
+account="telegram.mytelegram"
+# Telegram 群组/超级群 chat ID（负整数，通常 -100...）
+channel="${TELEGRAM_CHAT_ID_GROUP}"
+
+[[gateway.inout]]
+account="api.myapi"
+channel="api"

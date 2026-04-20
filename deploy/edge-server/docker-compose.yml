@@ -1,0 +1,24 @@
+services:
+  matterbridge:
+    image: 42wim/matterbridge:1.26.0
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      - ALL_PROXY=socks5://100.127.254.17:10808
+      - HTTP_PROXY=socks5://100.127.254.17:10808
+      - HTTPS_PROXY=socks5://100.127.254.17:10808
+      - NO_PROXY=localhost,127.0.0.0/8,::1,100.64.0.0/10,100.100.100.100/32,100.127.254.0/24
+    env_file:
+      - .env
+    ports:
+      - "${EDGE_PRIVATE_IP}:4242:4242"
+    volumes:
+      - ./matterbridge/matterbridge.toml:/etc/matterbridge/matterbridge.toml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4242/api/messages"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

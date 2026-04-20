@@ -1,0 +1,61 @@
+# Build
+/target
+**/*.rs.bk
+*.pdb
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+secrets.env
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# User config (may contain API keys)
+config.toml
+
+# NanoBot config with real LLM API keys (use config.json.example as template)
+deploy/internal-server/nanobot/config.json
+deploy/internal-server/nanobot/nanobot-data/
+# NanoBot MEMORY.md with real store info (use memory/MEMORY.md.example as template)
+deploy/internal-server/nanobot/memory/MEMORY.md
+
+# Certificates & keys
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# Runtime artifacts
+collector_hand_state.json
+collector_knowledge_base.json
+predictions_database.json
+prediction_report_*.md
+BUILD_LOG.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE & tools
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.codex
+
+# openfleet
+unread/
+node_modules/
+
+# openapi-generator-cli output (make api-gen-rs) — types are inlined in models/inbound.rs
+gateway/src/generated/
+
+target/

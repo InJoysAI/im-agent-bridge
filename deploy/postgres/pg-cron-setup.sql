@@ -1,0 +1,4 @@
+-- Deprecated: pg_cron retention setup has moved into Goose migration
+-- `SSoT/schema/migrations/00007_runtime_logs_retention_cron.sql`.
+-- Use:
+--   make db-migrate-up

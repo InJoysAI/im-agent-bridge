@@ -1,0 +1,212 @@
+# 迁移与 SSoT 约束模板 (Migrations and SSoT Template)
+
+> **Metadata**
+> - **Source**: `{{数据库设计文档路径}}`
+> - **Generated At**: `{{生成时间 YYYY-MM-DD HH:mm}}`
+> - **Generator**: `Context-Agent v1.0`
+
+---
+
+## 🎯 SSoT 原则
+
+> **Single Source of Truth**: `SSoT/schema/migrations/` 是数据库 Schema 的唯一真相源。
+
+### 禁止行为
+
+| ❌ 禁止 | ✅ 正确做法 |
+|--------|-----------| 
+| 直接在数据库执行 DDL | 创建 Goose SQL 迁移文件 |
+| 在生产库手动执行 DDL | 通过 CI/CD Pipeline 执行 `goose up` |
+| 多人同时修改 Schema | PR Review 合并迁移文件 |
+
+---
+
+## 🔧 Goose 工作流
+
+### 标准流程
+
+```mermaid
+flowchart LR
+    A[创建迁移文件] --> B[goose create]
+    B --> C[编写 SQL]
+    C --> D[Review 迁移 SQL]
+    D --> E[PR 合并]
+    E --> F[CI: goose up]
+    F --> G[验证 Schema]
+```
+
+### 常用命令
+
+```bash
+# 创建新迁移文件（SQL 格式）
+goose -dir SSoT/schema/migrations create add_users_table sql
+
+# 应用迁移（开发环境）
+goose -dir SSoT/schema/migrations \
+  postgres "postgres://user:pass@localhost:5432/dev?sslmode=disable" up
+
+# 查看迁移状态
+goose -dir SSoT/schema/migrations \
+  postgres "postgres://..." status
+
+# 回滚最近一次迁移
+goose -dir SSoT/schema/migrations \
+  postgres "postgres://..." down
+
+# 使用环境变量
+export GOOSE_DRIVER=postgres
+export GOOSE_DBSTRING="postgres://user:pass@localhost:5432/dev?sslmode=disable"
+export GOOSE_MIGRATION_DIR=SSoT/schema/migrations
+goose up
+```
+
+### 迁移文件格式
+
+```sql
+-- +goose Up
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- +goose Down
+DROP TABLE users;
+```
+
+### Go 迁移函数（复杂逻辑）
+
+对于需要程序逻辑的复杂迁移，可使用 Go 迁移函数：
+
+```go
+// 文件: SSoT/schema/migrations/00002_seed_data.go
+package migrations
+
+import (
+    "database/sql"
+    "github.com/pressly/goose/v3"
+)
+
+func init() {
+    goose.AddMigration(Up00002, Down00002)
+}
+
+func Up00002(tx *sql.Tx) error {
+    // 复杂数据迁移逻辑
+    _, err := tx.Exec(`INSERT INTO users (email) VALUES ('admin@example.com')`)
+    return err
+}
+
+func Down00002(tx *sql.Tx) error {
+    _, err := tx.Exec(`DELETE FROM users WHERE email = 'admin@example.com'`)
+    return err
+}
+```
+
+### 嵌入式自动迁移
+
+在 Go 应用启动时自动执行迁移：
+
+```go
+import (
+    "embed"
+    "github.com/pressly/goose/v3"
+)
+
+//go:embed SSoT/schema/migrations/*.sql
+var embedMigrations embed.FS
+
+func main() {
+    goose.SetBaseFS(embedMigrations)
+    if err := goose.Up(db, "SSoT/schema/migrations"); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+---
+
+## 🔄 零停机迁移策略
+
+### Expand-Contract 模式
+
+| 阶段 | 操作 | 目的 |
+|------|------|------|
+| **Expand** | 添加新列/表（可空或有默认值） | 新旧代码兼容 |
+| **Migrate** | 后台数据迁移 | 填充新字段 |
+| **Switch** | 应用代码切换到新字段 | 读写新字段 |
+| **Contract** | 删除旧列/表 | 清理 |
+
+### 示例：重命名列
+
+```sql
+-- ❌ 错误：直接重命名会导致宕机
+ALTER TABLE users RENAME COLUMN name TO full_name;
+
+-- ✅ 正确：分阶段
+-- Phase 1: Expand (00003_add_full_name.sql)
+-- +goose Up
+ALTER TABLE users ADD COLUMN full_name TEXT;
+UPDATE users SET full_name = name WHERE full_name IS NULL;
+
+-- +goose Down
+ALTER TABLE users DROP COLUMN full_name;
+
+-- Phase 2: Switch (应用代码更新后)
+-- Phase 3: Contract (00004_drop_name.sql)
+-- +goose Up
+ALTER TABLE users DROP COLUMN name;
+
+-- +goose Down
+ALTER TABLE users ADD COLUMN name TEXT;
+```
+
+---
+
+## ✅ 向后兼容变更（Safe）
+
+| 变更类型 | 安全性 | 说明 |
+|---------|--------|------|
+| 添加可空列 | ✅ Safe | 不影响现有数据 |
+| 添加有默认值的列 | ✅ Safe | 需注意大表性能 |
+| 添加新表 | ✅ Safe | 无影响 |
+| 添加索引 (CONCURRENTLY) | ✅ Safe | 不阻塞读写 |
+| 添加外键约束 | ⚠️ Caution | 需 NOT VALID + VALIDATE |
+
+---
+
+## ❌ 生产环境禁止操作
+
+| 操作 | 风险 | 替代方案 |
+|------|------|---------| 
+| `DROP TABLE` / `DROP COLUMN` | 数据丢失 | 先重命名 + 保留 30 天 |
+| `ALTER TABLE ... RENAME` | 应用中断 | Expand-Contract |
+| `CREATE INDEX` (非 CONCURRENTLY) | 锁表 | `CREATE INDEX CONCURRENTLY` |
+| 修改列类型 | 全表锁 | 添加新列 + 数据迁移 |
+| `TRUNCATE` | 数据丢失 | 禁止，使用 DELETE + VACUUM |
+
+---
+
+## 📋 迁移 Checklist
+
+```markdown
+## 迁移 PR Checklist
+
+- [ ] 创建了 Goose 迁移文件（`SSoT/schema/migrations/`）
+- [ ] 迁移文件包含 `-- +goose Up` 和 `-- +goose Down`
+- [ ] Review 迁移 SQL 内容
+- [ ] 验证向后兼容性
+- [ ] 大表变更使用 CONCURRENTLY
+- [ ] 回滚脚本准备（Down 迁移）
+- [ ] 更新相关文档
+```
+
+---
+
+## AI 引用指南
+
+当 AI 生成数据库变更时：
+1. **禁止直接输出 SQL** — 必须创建 Goose 迁移文件到 `SSoT/schema/migrations/`
+2. 遵循 Expand-Contract 模式
+3. 索引变更使用 CONCURRENTLY
+4. 不安全操作需分阶段或人工确认
