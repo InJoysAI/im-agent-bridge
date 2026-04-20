@@ -1,69 +1,58 @@
 # IM-Agent-Bridge
 
-**Query orders, trigger inventory alerts, and generate safe customer replies — all from Telegram, on your own server.**
+**Turn Telegram into your Shopify command center — query orders, check inventory, and draft customer replies in plain English. All on your own server.**
 
-Purpose-built for Shopify cross-border sellers who want an AI assistant that stays private, costs nothing to run, and connects to any AI runtime they choose.
+No vendor lock-in. No customer data leaving your infrastructure. Swap the AI runtime anytime.
 
-[中文文档](README.cn.md) · [Website](https://cbec.injoys.ai/) · [Issues](../../issues) · [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE) [![Stage](https://img.shields.io/badge/stage-MVP%20v1.1-orange)](CHANGELOG.md) [![Self-hosted](https://img.shields.io/badge/hosting-self--hosted-purple)](#quick-start)
+[中文文档](README.cn.md) · [Official Website](https://cbec.injoys.ai/) · [Report an Issue](../../issues)
 
----
-
-## What You Can Do Right Now
-
-Once deployed, send natural-language messages to your Telegram bot — it calls real Shopify APIs and replies instantly:
-
-```
-You  →  Where is order #US-20456?
-
-Bot  →  📦 Order #US-20456 — In Transit
-        Carrier: DHL Express | Tracking: 1234567890
-        Est. delivery: Apr 23 (2 business days)
-        Last update: Departed Shanghai hub — Apr 19, 14:32 UTC
-```
-
-```
-You  →  Is SKU WIDGET-BLK-XL still in stock?
-
-Bot  →  ✅ WIDGET-BLK-XL — 47 units available
-        Warehouse: US-West | Updated: 2 hours ago
-```
-
-```
-You  →  Which SKUs have fewer than 10 units left?
-
-Bot  →  ⚠️ Low Stock Alert — my-gadgets-shop
-        CABLE-USB-C    →  3 units  🔴 Critical
-        GADGET-RED-S   →  7 units  ⚠️ Low
-        CASE-BLK-M     →  9 units  ⚠️ Low
-        Recommend restocking CABLE-USB-C urgently.
-```
-
-```
-You  →  Draft a refund reply for order #EU-8821, professional tone.
-
-Bot  →  Here's a draft 👇
-
-        "Hi [Name], thank you for reaching out.
-        Your refund for order #EU-8821 ($42.00) has been processed
-        and will appear in 5–7 business days. We apologize for any
-        inconvenience and look forward to serving you again."
-
-        Want me to adjust the tone?
-```
-
-> **Note:** These examples require a configured Shopify MCP connection. See [Quick Start](#quick-start).
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Stage: MVP v1.1](https://img.shields.io/badge/stage-MVP%20v1.1-orange.svg)](#feature-status)
+[![Self-hosted](https://img.shields.io/badge/hosting-self--hosted-blueviolet.svg)](#quick-start)
+[![Telegram](https://img.shields.io/badge/channel-Telegram-26A5E4.svg)](#architecture)
+[![Shopify MCP](https://img.shields.io/badge/tools-Shopify%20MCP-96BF48.svg)](#architecture)
 
 ---
 
-## Why Self-Host?
+## See It in Action
+
+Real Telegram conversations with a live Shopify store — no mocking, no staging data:
+
+**Query high-value orders from your store:**
+
+![Query orders over $200 — bot returns fulfillment status, pricing analysis, and actionable suggestions](resource/order.png)
+
+**Scan your entire product catalog for issues:**
+
+![Query products over $200 — bot returns full inventory breakdown, pricing anomalies, and priority action items](resource/product.png)
+
+> These screenshots are from a real test session against a Shopify development store using the NanoBot runtime with Shopify MCP.
+
+---
+
+## What You Can Do Today
+
+Once deployed, message your bot in plain language — it calls real Shopify APIs and replies in seconds:
+
+| Ask your bot | What happens |
+|-------------|-------------|
+| `Where is order #US-20456?` | Fetches live fulfillment status + tracking number from Shopify |
+| `Which SKUs have fewer than 10 units?` | Runs inventory query → returns prioritised low-stock list |
+| `Show me all products over $200` | Pulls full catalog with prices, stock levels, and status flags |
+| `Draft a refund reply for order #EU-8821` | Generates a professional, PII-safe reply you can send immediately |
+| `Summarise today's open support issues` | Compiles unresolved tickets from order + customer data |
+
+---
+
+## Why Self-Host Instead of Using a SaaS Tool?
 
 | | IM-Agent-Bridge | Typical SaaS AI tools |
 |--|----------------|----------------------|
-| Customer PII stays on | ✅ Your server | ❌ Vendor's cloud |
-| AI runtime choice | ✅ Swap freely | ❌ Locked to vendor |
-| Monthly cost | ✅ Your infra cost | ❌ Per-seat/per-message fees |
-| Shopify MCP calls | ✅ Real API calls | ⚠️ Often mocked or limited |
-| Multi-store | 🔄 Roadmap | ✅ Usually included |
+| Where does customer PII go? | ✅ Stays on your server | ❌ Uploaded to vendor's cloud |
+| AI model choice | ✅ Swap freely — GPT-4o, Claude, local LLMs | ❌ Locked to vendor |
+| Running cost | ✅ Pay only for your VPS + LLM API | ❌ Per-seat or per-message SaaS fees |
+| Shopify data access | ✅ Real MCP calls via official APIs | ⚠️ Often mocked, rate-limited, or selective |
+| Auditability | ✅ You own the logs | ❌ Depends on vendor policy |
 
 ---
 
@@ -75,30 +64,31 @@ Telegram ──► Matterbridge (Edge) ──► Gateway (Rust) ──► Runtim
                                       PostgreSQL           Shopify MCP
 ```
 
-| Layer | Component | What it does |
-|-------|-----------|-------------|
-| **Channel** | Telegram + Matterbridge | Message in / out — edge only, no business logic |
+| Layer | Component | Role |
+|-------|-----------|------|
+| **Channel** | Telegram + Matterbridge | Message in/out — edge only, zero business logic |
 | **Bridge** | Matterbridge poller | Pure relay between Telegram and Gateway |
 | **Core** | Gateway (Rust) + Runtime + PostgreSQL | All routing, sessions, and tool dispatch |
 
-**Key design choices:**
-- The Bridge never calls the Runtime directly → swap either side independently
-- MCP credentials live only in the Runtime `.env` — never written to the database
-- The Runtime is pluggable: NanoBot ships by default, replace it via a one-file adapter
+**Three things that make this architecture pleasant to extend:**
+- Bridge and Runtime are fully decoupled — swap either without touching the other
+- Shopify credentials live only in the Runtime `.env`, never in the database
+- The Runtime is pluggable: NanoBot ships by default; replace it with a single adapter file
 
 ---
 
 ## Quick Start
 
-### Minimum Requirements
+### What You Need
 
-- A Linux VPS (1 vCPU / 1 GB RAM is enough for a single store)
-- Docker & Docker Compose
-- A [Telegram Bot Token](https://t.me/BotFather)
-- Shopify OAuth credentials (from your Partners dashboard)
-- An OpenAI-compatible API key (GPT-4o, etc.)
-
-> **Local development only:** also needs Rust (stable) and [Goose](https://pressly.github.io/goose/) for DB migrations.
+| Requirement | Notes |
+|-------------|-------|
+| Linux VPS | 1 vCPU / 1 GB RAM is enough for a single store |
+| Docker & Docker Compose | Runs all services — no Rust needed for non-developers |
+| Telegram Bot Token | Create one at [@BotFather](https://t.me/BotFather) in 2 minutes |
+| Shopify OAuth credentials | From your [Shopify Partners dashboard](https://partners.shopify.com/) |
+| LLM API key | Any OpenAI-compatible provider (GPT-4o, etc.) |
+| [Goose](https://pressly.github.io/goose/) | Only needed for local development / schema changes |
 
 ---
 
@@ -106,11 +96,12 @@ Telegram ──► Matterbridge (Edge) ──► Gateway (Rust) ──► Runtim
 
 ```bash
 cd deploy/postgres
-cp .env.example .env          # Set POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+cp .env.example .env
+# Edit .env: set POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 docker compose up -d
 ```
 
-Then apply the schema:
+Apply the schema (one-time, requires Goose):
 
 ```bash
 export GOOSE_DRIVER=postgres
@@ -118,70 +109,66 @@ export GOOSE_DBSTRING='postgres://user:password@127.0.0.1:5432/im_agent_bridge?s
 make db-migrate-up
 ```
 
-### Step 2 — Configure and Start NanoBot (AI Runtime)
+### Step 2 — Configure NanoBot (AI Runtime + Shopify MCP)
 
 ```bash
 cd deploy/internal-server/nanobot
-cp .env.example .env            # Set LLM_API_KEY + Shopify credentials per store
-cp config.json.example config.json   # Wire MCP servers (one entry per Shopify store)
-cp memory/MEMORY.md.example memory/MEMORY.md   # Optionally customise bot persona
+cp .env.example .env            # ← fill in your keys here
+cp config.json.example config.json
+cp memory/MEMORY.md.example memory/MEMORY.md   # optional: customise bot persona
 docker compose up -d
 ```
 
-**Shopify credential pattern in `.env`:**
-```dotenv
-LLM_API_KEY=sk-your-key
+Your `.env` for a single store looks like:
 
-# One group per store — slug uppercased, hyphens → underscores
+```dotenv
+LLM_API_KEY=sk-your-openai-key
+
 SHOPIFY_STORE1_CLIENT_ID=your-client-id
 SHOPIFY_STORE1_CLIENT_SECRET=your-client-secret
-SHOPIFY_STORE1_DOMAIN=store1.myshopify.com
+SHOPIFY_STORE1_DOMAIN=yourstore.myshopify.com
 ```
+
+Adding a second store? Append three more lines — see `.env.example` for the pattern.
 
 ### Step 3 — Start the Gateway
 
 ```bash
 cd gateway
 cp .env.example .env
-# Required: GATEWAY_BEARER_TOKEN, DATABASE_URL, BRIDGE_URL
+# Set: GATEWAY_BEARER_TOKEN, DATABASE_URL, BRIDGE_URL
 cargo run
 ```
 
-Available endpoints:
-- `POST /gateway/inbound` — receives messages from Matterbridge
-- `GET /health` — liveness check
-- `GET /metrics` — Prometheus metrics
-
-### Step 4 — Start Matterbridge (Telegram Edge)
+### Step 4 — Connect Telegram via Matterbridge
 
 ```bash
 cd deploy/edge-server
 cp .env.example .env
-# Required: TELEGRAM_BOT_TOKEN, GATEWAY_URL, GATEWAY_BEARER_TOKEN
+# Set: TELEGRAM_BOT_TOKEN, GATEWAY_URL, GATEWAY_BEARER_TOKEN
 docker compose up -d
 ```
 
-**Done.** Send a message to your bot in Telegram.
+**That's it.** Open Telegram, message your bot, and start querying your store.
 
 ```bash
-curl http://localhost:8080/health
-# → {"status":"ok"}
+curl http://localhost:8080/health   # → {"status":"ok"}
 ```
 
 ---
 
-## Known Limitations (MVP v1.1)
+## ⚠️ Known Limitations (MVP v1.1)
 
-Be aware of these before deploying in production:
+This is an honest summary of what the current MVP does **not** support. Please read before deploying:
 
-| Limitation | Detail |
+| Limitation | Impact |
 |-----------|--------|
-| **Text messages only** | Images, voice, files, and stickers are ignored |
-| **Telegram only** | WhatsApp, LINE, WeChat are not supported yet |
-| **Shared group context** | All members of a group share one agent session — no per-user isolation |
-| **No @mention filter** | In group chats the bot responds to every message (filter is on the roadmap) |
-| **Single runtime instance** | One NanoBot per deployment; no load balancing |
-| **No auto-scaling** | You manage infrastructure scaling manually |
+| **Text messages only** | Images, voice notes, files, and stickers are silently ignored |
+| **Telegram only** | WhatsApp, LINE, WeChat are not supported in this release |
+| **Shared group context** | Everyone in a group shares one agent session — no per-user conversation isolation |
+| **No @mention filter yet** | Bot responds to every message in a group, not just ones directed at it |
+| **Single runtime instance** | One NanoBot per deployment; horizontal scaling is not built in |
+| **Manual infrastructure** | You manage VPS provisioning, updates, and backups |
 
 ---
 
@@ -189,19 +176,18 @@ Be aware of these before deploying in production:
 
 | Feature | Status |
 |---------|--------|
-| Telegram text messages | ✅ Done |
-| Gateway inbound routing | ✅ Done |
-| Session persistence (PostgreSQL) | ✅ Done |
-| NanoBot runtime adapter | ✅ Done |
-| Shopify MCP tool calls | ✅ Done |
-| `/health` endpoint | ✅ Done |
-| Prometheus `/metrics` | ✅ Done |
-| Group chat @mention filter | 🔄 Planned |
-| Rich media (images, files) | 🔄 CBECOps Pro |
+| Telegram text messages | ✅ Shipped |
+| Inbound routing & session management | ✅ Shipped |
+| PostgreSQL persistence | ✅ Shipped |
+| NanoBot runtime adapter | ✅ Shipped |
+| Shopify MCP tool calls | ✅ Shipped |
+| `/health` + Prometheus `/metrics` | ✅ Shipped |
+| Group @mention filter | 🔄 Planned |
+| Rich media (images, files, voice) | 🔄 CBECOps Pro |
 | Multi-store routing | 🔄 CBECOps Pro |
-| WhatsApp / LINE channels | 🔄 CBECOps Pro |
-| SSO & team access control | 🔄 CBECOps Pro |
-| Managed hosting | 🔄 CBECOps Pro |
+| WhatsApp / LINE / WeChat channels | 🔄 CBECOps Pro |
+| SSO & team access management | 🔄 CBECOps Pro |
+| Managed / hosted deployment | 🔄 CBECOps Pro |
 
 ---
 
@@ -214,6 +200,7 @@ im-agent-bridge/
 │   ├── edge-server/         # Matterbridge — Telegram ↔ Gateway relay
 │   ├── internal-server/     # NanoBot runtime + Shopify MCP config
 │   └── postgres/            # PostgreSQL + pg_cron retention setup
+├── resource/                # Screenshots and demo assets
 └── SSoT/
     ├── schema/migrations/   # Goose SQL migrations (authoritative schema)
     └── api/                 # TypeSpec API contracts (authoritative endpoints)
@@ -221,32 +208,33 @@ im-agent-bridge/
 
 ---
 
-## Growing Beyond the Skeleton — CBECOps Pro
+## Need More? — CBECOps Pro
 
-The open-source skeleton is production-ready for a single Telegram channel and single Shopify store. When your operation grows, **[CBECOps Pro](https://cbec.injoys.ai/)** adds the layers that help teams scale:
+The open-source skeleton is **free forever** and production-ready for one Telegram channel and one Shopify store. As your operation scales, **[CBECOps Pro](https://cbec.injoys.ai/)** adds team-grade capabilities on top:
 
-| | Community | CBECOps Pro | Enterprise |
-|--|-----------|-------------|------------|
+| | Community (Open Source) | CBECOps Pro | Enterprise |
+|--|------------------------|-------------|------------|
 | Telegram text + Shopify MCP | ✅ | ✅ | ✅ |
-| Self-hosted | ✅ | ✅ | ✅ |
-| Rich media (images, files) | ❌ | ✅ | ✅ |
+| Self-hosted deployment | ✅ | ✅ | ✅ |
+| Rich media (images, files, voice) | ❌ | ✅ | ✅ |
 | Multi-store routing | ❌ | ✅ | ✅ |
 | WhatsApp / LINE / WeChat | ❌ | ✅ | ✅ |
 | SSO & role-based access | ❌ | ✅ | ✅ |
-| Audit logs | ❌ | ✅ | ✅ |
+| Audit logs & compliance | ❌ | ✅ | ✅ |
 | Managed hosting option | ❌ | ✅ | ✅ |
-| SLA & priority support | Community | ✅ | ✅ Dedicated |
+| Priority support & SLA | Community | ✅ | ✅ Dedicated |
 | Custom development | ❌ | ❌ | ✅ |
 
-→ **[cbec.injoys.ai](https://cbec.injoys.ai/)** — contact us for pricing and a demo
+→ **[Visit cbec.injoys.ai](https://cbec.injoys.ai/)** to learn more or book a demo
 
 ---
 
 ## Contributing
 
-Bug reports, runtime adapters, MCP templates, and docs improvements are all welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Bug reports, runtime adapters, MCP tool templates, and documentation improvements are all welcome.
 
-Security issues: do **not** open a public issue — see [SECURITY.md](SECURITY.md) for responsible disclosure.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.  
+Security vulnerabilities: please **do not** open a public issue — see [SECURITY.md](SECURITY.md).
 
 ---
 
