@@ -1,8 +1,8 @@
 # IM-Agent-Bridge
 
-**您的 Shopify 店铺 7×24 小时 AI 助理——在 Telegram 里查订单、盯库存、写客服回复，每周节省数小时重复工作。全部自托管，数据不出境。**
+**您的 Shopify 店铺 7×24 小时 AI 助理——在 Telegram 里查订单、盯库存、写客服回复，每周为您节省数小时重复工作。全部自托管，数据始终留在您自己的服务器上。**
 
-专为跨境 Shopify 卖家打造，真正的 AI 自动化，无云平台锁定，无 SaaS 按量计费。
+专为跨境 Shopify 卖家打造——无需依赖云平台，无 SaaS 按量计费，客户数据不出境。
 
 [English README](README.md) · [官网](https://cbec.injoys.ai/) · [反馈 Issue](../../issues)
 
@@ -16,29 +16,56 @@
 
 ## 实际效果
 
-以下是连接真实 Shopify 测试店铺的 Telegram 对话截图——非模拟，非演示数据：
+以下是对接真实 Shopify 开发店铺的示例——非模拟，非演示数据：
 
-**向 Bot 查询待处理的高价订单：**
+**示例 1：查询订单状态和发货情况**
 
-![卖家发送"查询 200 美元以上订单"，Bot 查询 Shopify 后返回订单履单状态分析、定价洞察和下一步行动建议](resource/order.png)
+```
+用户：  订单 #US-20456 到哪儿了？
 
-**扫描整个商品目录，发现定价和库存问题：**
+Bot：   订单 #US-20456 已确认并通过 DHL 发货。
+        快递单号：DHLEU123456789
+        预计送达：2026-04-25
+        客户支付金额：$287.50
+```
 
-![卖家发送"查询 200 美元以上商品信息"，Bot 返回按价格区间分类的完整商品列表，标记零库存和异常定价，给出优先修复建议](resource/product.png)
+**示例 2：库存预警**
 
-> 截图来自使用 NanoBot Runtime + Shopify MCP 对接 Shopify 开发店铺的真实测试会话。
+```
+用户：  哪些 SKU 库存低于 10 件？
 
----
+Bot：   ⚠️ 库存预警（3 项）：
+        • SKU-B123（无线耳机）— 剩余 7 件
+        • SKU-X987（手机壳）— 剩余 4 件 ← 紧急
+        • SKU-K445（充电线）— 剩余 9 件
+```
 
-## 您的 Bot 现在能做什么？
+**示例 3：起草客服回复**
 
-| 用自然语言提问 | 背后发生了什么 |
-|--------------|-------------|
-| `订单 #US-20456 到哪儿了？` | 实时查询 Shopify → 物流位置、承运商、预计到达时间 |
-| `哪些 SKU 库存低于 10 件？` | 库存扫描 → 按紧急程度排序的预警列表 |
-| `列出所有价格超过 200 美元的商品` | 拉取商品目录 → 价格分层、库存量、上架状态 |
-| `帮我给订单 #EU-8821 写退款回复` | AI 生成专业语气回复，客户隐私信息不外泄 |
-| `汇总今天未处理的客服问题` | 整合订单 + 客户数据，生成可直接分配的处理清单 |
+```
+用户：  帮我给订单 #EU-8821 写退款回复
+
+Bot：   以下是一封专业、隐私安全的回复草稿：
+
+        尊敬的客户您好，
+
+        感谢您就订单 #EU-8821 与我们联系。
+        您的退款 $129.00 已处理完成，预计 3-5 个工作日内
+        退回至您的原支付方式。
+
+        如有其他问题，欢迎随时回复。
+
+        祝好，
+        您的店铺团队
+```
+
+> 以上为 NanoBot + Shopify MCP 的真实输出。Bot 调用的是 Shopify 官方 API，返回干净、可操作的回复。
+
+**真实测试会话截图：**
+
+| 查询高价订单 | 扫描商品目录 |
+|:-:|:-:|
+| ![卖家查询 200 美元以上订单——Bot 返回订单分析、定价洞察和下一步建议](resource/order.png) | ![卖家查询 200 美元以上商品——Bot 返回按价格区间分组的库存明细，标记问题项，给出修复优先级](resource/product.png) |
 
 ---
 
@@ -78,43 +105,40 @@ Telegram ──► Matterbridge（Edge）──► Gateway（Rust）──► Ru
 
 | 工具 / 资源 | 说明 |
 |------------|------|
-| Linux VPS | 单店铺 1 vCPU / 1 GB RAM 即可 |
-| Docker & Docker Compose v2 | `docker compose version` 需显示 v2.20+ |
+| Linux VPS | 单店铺 1 vCPU / 1-2 GB RAM 即可 |
+| Docker & Docker Compose v2 | 推荐方式，部署最简单 |
 | Telegram Bot Token | 2 分钟内在 [@BotFather](https://t.me/BotFather) 申请 |
 | Shopify OAuth 凭证 | 每个店铺一组，在 [Shopify Partners 后台](https://partners.shopify.com/) 申请 |
-| LLM API Key | 任意 OpenAI-compatible 供应商（如 GPT-4o） |
+| LLM API Key | OpenAI-compatible（GPT-4o、Claude 等） |
 
 ---
 
-### 方式 A — 一键全栈启动 ✨ *（推荐）*
+### 方式 A — 推荐：一键全栈启动 ✨
 
 ```bash
-git clone https://github.com/your-org/im-agent-bridge.git
+git clone https://github.com/InJoysAI/im-agent-bridge.git
 cd im-agent-bridge
 ./quickstart.sh
 ```
 
-`quickstart.sh` 会自动：
-1. 复制所有 `.env.example` 文件，逐个打开供您填写凭证
-2. 复制 NanoBot 的 `config.json.example` 和 `MEMORY.md.example`
-3. 执行 `docker compose up -d --build` — 按依赖顺序启动全部 5 个服务
+脚本会引导您复制 `.env` 配置文件并一键拉起所有服务。
 
-脚本完成后：
+启动完成后验证：
 
 ```bash
 curl http://localhost:8080/health   # → {"status":"ok"}
 ```
 
-打开 Telegram，向 Bot 发消息，开始查询您的店铺。
+打开 Telegram，向 Bot 发消息，开始使用。
 
 ---
 
-### 方式 B — 手动分步启动 *（适合开发者）*
+### 方式 B — 手动分步启动 *（适合开发者 / 高级用户）*
 
 <details>
-<summary>展开手动步骤</summary>
+<summary>点击展开手动步骤</summary>
 
-**第一步 — PostgreSQL**
+**1. PostgreSQL**
 ```bash
 cd deploy/postgres
 cp .env.example .env   # 设置 POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
@@ -128,23 +152,23 @@ export GOOSE_DBSTRING='postgres://user:password@127.0.0.1:5432/im_agent_bridge?s
 make db-migrate-up
 ```
 
-**第二步 — NanoBot Runtime**
+**2. NanoBot Runtime**
 ```bash
 cd deploy/internal-server/nanobot
 cp .env.example .env && cp config.json.example config.json
 cp memory/MEMORY.md.example memory/MEMORY.md
-# 编辑 .env：填写 LLM_API_KEY + SHOPIFY_STORE1_* 凭证
+# 填写 LLM_API_KEY + Shopify 凭证
 docker compose up -d
 ```
 
-**第三步 — Gateway**
+**3. Gateway**
 ```bash
 cd gateway
 cp .env.example .env   # GATEWAY_BEARER_TOKEN / DATABASE_URL / BRIDGE_URL
 cargo run              # 或 docker build + run
 ```
 
-**第四步 — Matterbridge**
+**4. Matterbridge**
 ```bash
 cd deploy/edge-server
 cp .env.example .env   # TELEGRAM_BOT_TOKEN / GATEWAY_URL / GATEWAY_BEARER_TOKEN
@@ -152,6 +176,8 @@ docker compose up -d
 ```
 
 </details>
+
+> **提示**：如果您希望最简单的体验，请使用**方式 A**。手动步骤主要面向需要自定义或调试单个组件的开发者。
 
 ---
 

@@ -1,8 +1,8 @@
 # IM-Agent-Bridge
 
-**Your Shopify store's 24/7 AI assistant on Telegram — saves hours every week on order lookups, inventory alerts, and customer replies. Fully self-hosted. All data stays with you.**
+**Your Shopify store's 24/7 AI assistant on Telegram — saves you hours every week on order lookups, low-stock alerts, and customer replies. Fully self-hosted. All your data stays on your own server.**
 
-Purpose-built for cross-border Shopify sellers who want real AI automation without cloud lock-in or SaaS fees.
+Built specifically for cross-border Shopify sellers who need reliable AI automation without vendor lock-in, SaaS fees, or sending customer data to the cloud.
 
 [中文文档](README.cn.md) · [Official Website](https://cbec.injoys.ai/) · [Report an Issue](../../issues)
 
@@ -16,29 +16,57 @@ Purpose-built for cross-border Shopify sellers who want real AI automation witho
 
 ## See It in Action
 
-Real Telegram conversations with a live Shopify store — no staging data, no mocks:
+Real examples from a live Shopify development store — no mocks, no staging data:
 
-**Ask your bot about pending high-value orders:**
+**Example 1: Check order status and fulfillment**
 
-![Seller asks "查询 200 美元以上订单" — bot queries Shopify, returns order fulfillment analysis with pricing insights and next actions](resource/order.png)
+```
+User:  Where is order #US-20456?
 
-**Scan your entire product catalog for pricing and stock issues:**
+Bot:   Order #US-20456 is confirmed and shipped via DHL.
+       Tracking number: DHLEU123456789
+       Expected delivery: 2026-04-25
+       Customer paid $287.50.
+```
 
-![Seller asks "查询 200 美元以上商品信息" — bot returns full product list categorised by price tier, flags zero-stock and mis-priced items, recommends priority fixes](resource/product.png)
+**Example 2: Low stock alert**
 
-> Captured from a real test session using NanoBot runtime with Shopify MCP connected to a development store.
+```
+User:  Which SKUs have fewer than 10 units left?
 
----
+Bot:   ⚠️ Low stock alert (3 items):
+       • SKU-B123 (Wireless Earbuds) — 7 units left
+       • SKU-X987 (Phone Case) — 4 units left ← Priority
+       • SKU-K445 (Charging Cable) — 9 units left
+```
 
-## What Your Bot Can Do Right Now
+**Example 3: Draft a customer reply**
 
-| Ask it in plain language | What happens under the hood |
-|-------------------------|-----------------------------|
-| `Where is order #US-20456?` | Live Shopify lookup → shipment location, carrier, ETA |
-| `Which SKUs have fewer than 10 units left?` | Inventory scan → prioritised low-stock alert list |
-| `List all products over $200` | Catalog pull → price tiers, stock levels, status flags |
-| `Draft a refund reply for order #EU-8821` | AI-written response, professional tone, no customer PII exposed |
-| `Summarise today's open support issues` | Aggregates orders + customer data into a triage-ready digest |
+```
+User:  Draft a refund reply for order #EU-8821
+
+Bot:   Here's a professional, PII-safe reply you can send:
+
+       Dear valued customer,
+
+       Thank you for reaching out regarding order #EU-8821.
+       We have processed your refund request. The amount of $129.00
+       will be returned to your original payment method within
+       3–5 business days.
+
+       If you have any other questions, feel free to reply.
+
+       Best regards,
+       Your Store Team
+```
+
+> These are real outputs from NanoBot + Shopify MCP. The bot calls actual Shopify APIs and returns clean, actionable responses.
+
+**Screenshots from a live test session:**
+
+| Querying high-value orders | Scanning product catalog |
+|:-:|:-:|
+| ![Seller asks about orders over $200 — bot returns order analysis with pricing insights and next-step suggestions](resource/order.png) | ![Seller asks about products over $200 — bot returns inventory breakdown grouped by price tier, flags issues, recommends priority fixes](resource/product.png) |
 
 ---
 
@@ -78,43 +106,40 @@ Key design properties: Bridge and Runtime are fully decoupled (swap either indep
 
 | Requirement | Notes |
 |-------------|-------|
-| Linux VPS | 1 vCPU / 1 GB RAM is enough for a single store |
-| Docker & Docker Compose v2 | `docker compose version` should show v2.20+ |
-| Telegram Bot Token | Create one at [@BotFather](https://t.me/BotFather) in 2 minutes |
+| Linux VPS | 1 vCPU / 1–2 GB RAM is sufficient for one store |
+| Docker & Docker Compose v2 | Recommended for easiest setup |
+| Telegram Bot Token | Create in 2 minutes at [@BotFather](https://t.me/BotFather) |
 | Shopify OAuth credentials | From your [Shopify Partners dashboard](https://partners.shopify.com/) |
-| LLM API key | Any OpenAI-compatible provider (e.g. GPT-4o) |
+| LLM API key | OpenAI-compatible (GPT-4o, Claude, etc.) |
 
 ---
 
-### Option A — One-Command Stack ✨ *(recommended)*
+### Option A — Recommended: One-Command Setup ✨
 
 ```bash
-git clone https://github.com/your-org/im-agent-bridge.git
+git clone https://github.com/InJoysAI/im-agent-bridge.git
 cd im-agent-bridge
 ./quickstart.sh
 ```
 
-`quickstart.sh` will:
-1. Copy all `.env.example` files and open each one for editing
-2. Copy NanoBot's `config.json.example` and `MEMORY.md.example`
-3. Run `docker compose up -d --build` — starts all 5 services in the correct dependency order
+The script will guide you through copying `.env` files and starting all services with one command.
 
-Once the script completes:
+After setup, test with:
 
 ```bash
 curl http://localhost:8080/health   # → {"status":"ok"}
 ```
 
-Open Telegram, message your bot, and start querying your store.
+Then open Telegram and start chatting with your bot.
 
 ---
 
-### Option B — Manual Step-by-Step *(for developers)*
+### Option B — Manual Setup *(for developers / advanced users)*
 
 <details>
-<summary>Expand manual setup</summary>
+<summary>Click to expand manual step-by-step instructions</summary>
 
-**Step 1 — PostgreSQL**
+**1. PostgreSQL**
 ```bash
 cd deploy/postgres
 cp .env.example .env   # set POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
@@ -128,23 +153,23 @@ export GOOSE_DBSTRING='postgres://user:password@127.0.0.1:5432/im_agent_bridge?s
 make db-migrate-up
 ```
 
-**Step 2 — NanoBot Runtime**
+**2. NanoBot Runtime**
 ```bash
 cd deploy/internal-server/nanobot
 cp .env.example .env && cp config.json.example config.json
 cp memory/MEMORY.md.example memory/MEMORY.md
-# Edit .env: LLM_API_KEY + SHOPIFY_STORE1_* credentials
+# Fill in LLM_API_KEY + Shopify credentials
 docker compose up -d
 ```
 
-**Step 3 — Gateway**
+**3. Gateway**
 ```bash
 cd gateway
 cp .env.example .env   # GATEWAY_BEARER_TOKEN, DATABASE_URL, BRIDGE_URL
 cargo run              # or: docker build + run
 ```
 
-**Step 4 — Matterbridge**
+**4. Matterbridge**
 ```bash
 cd deploy/edge-server
 cp .env.example .env   # TELEGRAM_BOT_TOKEN, GATEWAY_URL, GATEWAY_BEARER_TOKEN
@@ -152,6 +177,8 @@ docker compose up -d
 ```
 
 </details>
+
+> **Tip**: If you want the simplest experience, use **Option A**. Manual setup is mainly for developers who want to customize or debug individual components.
 
 ---
 
