@@ -1,0 +1,149 @@
+# IM-Agent-Bridge — Unified Stack
+# Requires Docker Compose v2 (docker compose, not docker-compose)
+#
+# Before first run:
+#   cp deploy/postgres/.env.example         deploy/postgres/.env
+#   cp deploy/internal-server/nanobot/.env.example  deploy/internal-server/nanobot/.env
+#   cp deploy/internal-server/nanobot/config.json.example  deploy/internal-server/nanobot/config.json
+#   cp deploy/internal-server/nanobot/memory/MEMORY.md.example  deploy/internal-server/nanobot/memory/MEMORY.md
+#   cp deploy/edge-server/.env.example      deploy/edge-server/.env
+#   cp gateway/.env.example                 gateway/.env
+#
+# Then edit each .env with your credentials, then run:
+#   docker compose up -d
+
+name: im-agent-bridge
+
+services:
+
+  # ── 1. PostgreSQL (with pg_cron) ───────────────────────────────────────────
+  postgres:
+    build:
+      context: deploy/postgres
+      dockerfile: dockerfile
+    image: im-agent-bridge-postgres:latest
+    container_name: imab-postgres
+    env_file:
+      - deploy/postgres/.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_cron
+      - -c
+      - cron.database_name=${CRON_DATABASE_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── 2. DB Migrations (runs once then exits) ────────────────────────────────
+  migrate:
+    image: ghcr.io/pressly/goose:latest
+    env_file:
+      - deploy/postgres/.env
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    volumes:
+      - ./SSoT/schema/migrations:/migrations
+    command: ["goose", "-dir", "/migrations", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── 3. NanoBot Runtime (AI + Shopify MCP) ─────────────────────────────────
+  nanobot:
+    build:
+      context: deploy/internal-server/nanobot
+      dockerfile: Dockerfile
+    container_name: imab-nanobot
+    env_file:
+      - deploy/internal-server/nanobot/.env
+    volumes:
+      - ./deploy/internal-server/nanobot/nanobot-data:/home/nanobot/.nanobot
+      - ./deploy/internal-server/nanobot/config.json:/home/nanobot/.nanobot/config.json:ro
+      - ./deploy/internal-server/nanobot/memory/MEMORY.md:/home/nanobot/.nanobot/workspace/memory/MEMORY.md:ro
+    ports:
+      - "127.0.0.1:8900:8900"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8900/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── 4. Gateway (Rust — routing, sessions, dispatch) ────────────────────────
+  gateway:
+    build:
+      context: gateway
+      dockerfile: Dockerfile
+    container_name: imab-gateway
+    env_file:
+      - gateway/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      nanobot:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── 5. Matterbridge (Telegram Edge) ───────────────────────────────────────
+  matterbridge:
+    image: 42wim/matterbridge:1.26.0
+    container_name: imab-matterbridge
+    env_file:
+      - deploy/edge-server/.env
+    volumes:
+      - ./deploy/edge-server/matterbridge/matterbridge.toml:/etc/matterbridge/matterbridge.toml:ro
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4242/api/messages"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:

@@ -1,46 +1,44 @@
 # IM-Agent-Bridge
 
-**让 Telegram 成为您的 Shopify 运营中枢——用自然语言查订单、盘库存、写客服回复，全部跑在您自己的服务器上。**
+**您的 Shopify 店铺 7×24 小时 AI 助理——在 Telegram 里查订单、盯库存、写客服回复，每周节省数小时重复工作。全部自托管，数据不出境。**
 
-无供应商绑定。客户数据不离境。AI Runtime 随时可换。
+专为跨境 Shopify 卖家打造，真正的 AI 自动化，无云平台锁定，无 SaaS 按量计费。
 
 [English README](README.md) · [官网](https://cbec.injoys.ai/) · [反馈 Issue](../../issues)
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![阶段: MVP v1.1](https://img.shields.io/badge/stage-MVP%20v1.1-orange.svg)](#功能状态)
-[![自托管](https://img.shields.io/badge/hosting-self--hosted-blueviolet.svg)](#快速启动)
+[![自托管](https://img.shields.io/badge/hosting-self--hosted-blueviolet.svg)](#快速部署)
 [![Telegram](https://img.shields.io/badge/渠道-Telegram-26A5E4.svg)](#架构概览)
 [![Shopify MCP](https://img.shields.io/badge/工具-Shopify%20MCP-96BF48.svg)](#架构概览)
 
 ---
 
-## 实际效果长什么样？
+## 实际效果
 
-以下是真实 Telegram 对话截图，数据来自真实 Shopify 测试店铺，非模拟：
+以下是连接真实 Shopify 测试店铺的 Telegram 对话截图——非模拟，非演示数据：
 
-**查询昨天的大额订单：**
+**向 Bot 查询待处理的高价订单：**
 
-![用户发送"查询 200 美元以上订单"，Bot 返回履单状态、价格分析和可执行建议](resource/order.png)
+![卖家发送"查询 200 美元以上订单"，Bot 查询 Shopify 后返回订单履单状态分析、定价洞察和下一步行动建议](resource/order.png)
 
 **扫描整个商品目录，发现定价和库存问题：**
 
-![用户发送"查询 200 美元以上商品信息"，Bot 返回完整库存明细、异常定价和优先行动项](resource/product.png)
+![卖家发送"查询 200 美元以上商品信息"，Bot 返回按价格区间分类的完整商品列表，标记零库存和异常定价，给出优先修复建议](resource/product.png)
 
 > 截图来自使用 NanoBot Runtime + Shopify MCP 对接 Shopify 开发店铺的真实测试会话。
 
 ---
 
-## 您现在就可以做什么？
+## 您的 Bot 现在能做什么？
 
-部署完成后，直接在 Telegram 里用中文（或英文）向 Bot 提问——它会调用真实 Shopify API 并秒速回复：
-
-| 向 Bot 发送 | 发生什么 |
-|------------|---------|
-| `订单 #US-20456 到哪儿了？` | 实时查询 Shopify 履单状态 + 物流单号 |
-| `哪些 SKU 库存低于 10 件？` | 执行库存查询 → 返回按紧急程度排序的预警列表 |
-| `列出所有价格超过 200 美元的商品` | 拉取完整目录，含价格、库存量和上架状态 |
-| `帮我给订单 #EU-8821 写退款回复` | 生成专业语气、PII 安全的客服回复，可直接发送 |
-| `汇总今天未处理的客服问题` | 整合订单 + 客户数据，生成待办事项摘要 |
+| 用自然语言提问 | 背后发生了什么 |
+|--------------|-------------|
+| `订单 #US-20456 到哪儿了？` | 实时查询 Shopify → 物流位置、承运商、预计到达时间 |
+| `哪些 SKU 库存低于 10 件？` | 库存扫描 → 按紧急程度排序的预警列表 |
+| `列出所有价格超过 200 美元的商品` | 拉取商品目录 → 价格分层、库存量、上架状态 |
+| `帮我给订单 #EU-8821 写退款回复` | AI 生成专业语气回复，客户隐私信息不外泄 |
+| `汇总今天未处理的客服问题` | 整合订单 + 客户数据，生成可直接分配的处理清单 |
 
 ---
 
@@ -48,11 +46,11 @@
 
 | | IM-Agent-Bridge | 典型 SaaS AI 工具 |
 |--|----------------|-----------------|
-| 客户 PII 数据存放在哪？ | ✅ 留在您自己的服务器 | ❌ 上传至供应商云端 |
-| AI 模型选择 | ✅ 随时替换 — GPT-4o、Claude、本地模型均可 | ❌ 锁定供应商 |
-| 月度运行成本 | ✅ 仅 VPS + LLM API 费用 | ❌ 按席位或按消息计费 |
-| Shopify 数据访问方式 | ✅ 通过官方 API 的真实 MCP 调用 | ⚠️ 通常为模拟、受限或选择性 |
-| 日志可审计性 | ✅ 您完全掌控 | ❌ 取决于供应商策略 |
+| 客户数据 | ✅ 始终留在您的服务器 | ❌ 上传至供应商云端 |
+| AI 模型选择 | ✅ GPT-4o、Claude、本地模型——您决定 | ❌ 锁定供应商 |
+| 月度成本 | ✅ 仅 VPS + LLM API 费用 | ❌ 按席位或按消息计费 |
+| Shopify 数据 | ✅ 通过官方 API 的真实 MCP 调用 | ⚠️ 通常为模拟或受限 |
+| 可审计性 | ✅ 所有日志您完全掌控 | ❌ 取决于供应商策略 |
 
 ---
 
@@ -70,97 +68,96 @@ Telegram ──► Matterbridge（Edge）──► Gateway（Rust）──► Ru
 | **Bridge 层** | Matterbridge poller | 在 Telegram 与 Gateway 之间纯中继 |
 | **Core 层** | Gateway (Rust) + Runtime + PostgreSQL | 全部路由、会话管理、工具调度 |
 
-**让这套架构便于扩展的三个设计决策：**
-
-- Bridge 与 Runtime 完全解耦 — 替换任意一侧无需改动另一侧
-- Shopify 凭证仅存于 Runtime `.env` — 绝不写入数据库，保障 PII 安全
-- Runtime 可插拔：默认搭载 NanoBot，通过一个 Adapter 文件即可替换
+核心设计：Bridge 与 Runtime 完全解耦（两侧可独立替换）。Shopify 凭证仅存于 Runtime `.env`，绝不写入数据库。Runtime 可插拔——默认搭载 NanoBot。
 
 ---
 
-## 快速启动
+## 快速部署
 
 ### 您需要准备
 
 | 工具 / 资源 | 说明 |
 |------------|------|
 | Linux VPS | 单店铺 1 vCPU / 1 GB RAM 即可 |
-| Docker & Docker Compose | 运行所有服务，非开发者无需 Rust |
+| Docker & Docker Compose v2 | `docker compose version` 需显示 v2.20+ |
 | Telegram Bot Token | 2 分钟内在 [@BotFather](https://t.me/BotFather) 申请 |
 | Shopify OAuth 凭证 | 每个店铺一组，在 [Shopify Partners 后台](https://partners.shopify.com/) 申请 |
 | LLM API Key | 任意 OpenAI-compatible 供应商（如 GPT-4o） |
-| [Goose](https://pressly.github.io/goose/)（仅开发环境） | 本地 Schema 变更时使用 |
 
 ---
 
-### 第一步 — 启动 PostgreSQL
+### 方式 A — 一键全栈启动 ✨ *（推荐）*
 
 ```bash
+git clone https://github.com/your-org/im-agent-bridge.git
+cd im-agent-bridge
+./quickstart.sh
+```
+
+`quickstart.sh` 会自动：
+1. 复制所有 `.env.example` 文件，逐个打开供您填写凭证
+2. 复制 NanoBot 的 `config.json.example` 和 `MEMORY.md.example`
+3. 执行 `docker compose up -d --build` — 按依赖顺序启动全部 5 个服务
+
+脚本完成后：
+
+```bash
+curl http://localhost:8080/health   # → {"status":"ok"}
+```
+
+打开 Telegram，向 Bot 发消息，开始查询您的店铺。
+
+---
+
+### 方式 B — 手动分步启动 *（适合开发者）*
+
+<details>
+<summary>展开手动步骤</summary>
+
+**第一步 — PostgreSQL**
+```bash
 cd deploy/postgres
-cp .env.example .env
-# 编辑 .env：填写 POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
+cp .env.example .env   # 设置 POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
 docker compose up -d
 ```
 
-初始化数据库 Schema（仅首次，需要 Goose）：
-
+执行迁移（需 [Goose](https://pressly.github.io/goose/)）：
 ```bash
 export GOOSE_DRIVER=postgres
 export GOOSE_DBSTRING='postgres://user:password@127.0.0.1:5432/im_agent_bridge?sslmode=disable'
 make db-migrate-up
 ```
 
-### 第二步 — 配置 NanoBot（AI Runtime + Shopify MCP）
-
+**第二步 — NanoBot Runtime**
 ```bash
 cd deploy/internal-server/nanobot
-cp .env.example .env            # ← 在这里填写您的密钥
-cp config.json.example config.json
-cp memory/MEMORY.md.example memory/MEMORY.md   # 可选：自定义 Bot 人设
+cp .env.example .env && cp config.json.example config.json
+cp memory/MEMORY.md.example memory/MEMORY.md
+# 编辑 .env：填写 LLM_API_KEY + SHOPIFY_STORE1_* 凭证
 docker compose up -d
 ```
 
-单店铺的 `.env` 示例：
-
-```dotenv
-LLM_API_KEY=sk-your-openai-key
-
-SHOPIFY_STORE1_CLIENT_ID=your-client-id
-SHOPIFY_STORE1_CLIENT_SECRET=your-client-secret
-SHOPIFY_STORE1_DOMAIN=yourstore.myshopify.com
-```
-
-需要接入第二家店铺？再追加三行即可，格式见 `.env.example`。
-
-### 第三步 — 启动 Gateway
-
+**第三步 — Gateway**
 ```bash
 cd gateway
-cp .env.example .env
-# 必填：GATEWAY_BEARER_TOKEN / DATABASE_URL / BRIDGE_URL
-cargo run
+cp .env.example .env   # GATEWAY_BEARER_TOKEN / DATABASE_URL / BRIDGE_URL
+cargo run              # 或 docker build + run
 ```
 
-### 第四步 — 通过 Matterbridge 接入 Telegram
-
+**第四步 — Matterbridge**
 ```bash
 cd deploy/edge-server
-cp .env.example .env
-# 必填：TELEGRAM_BOT_TOKEN / GATEWAY_URL / GATEWAY_BEARER_TOKEN
+cp .env.example .env   # TELEGRAM_BOT_TOKEN / GATEWAY_URL / GATEWAY_BEARER_TOKEN
 docker compose up -d
 ```
 
-**完成。** 打开 Telegram，向 Bot 发消息，开始查询您的店铺。
-
-```bash
-curl http://localhost:8080/health   # → {"status":"ok"}
-```
+</details>
 
 ---
 
 ## ⚠️ 已知限制（MVP v1.1）
 
-上线前请仔细阅读当前 MVP 的能力边界：
+上线前请务必了解：
 
 | 限制 | 实际影响 |
 |------|---------|
@@ -169,7 +166,7 @@ curl http://localhost:8080/health   # → {"status":"ok"}
 | **群聊上下文共享** | 群内所有成员共用一个 Agent 会话，无单用户对话隔离 |
 | **暂无 @提及过滤** | 群聊中 Bot 会响应所有消息，而非仅响应被 @ 的消息 |
 | **单 Runtime 实例** | 每次部署仅一个 NanoBot，未内置水平扩展 |
-| **手动运维** | VPS 配置、升级和备份需自行管理 |
+| **自行管理基础设施** | VPS 配置、升级和备份需您自行处理 |
 
 ---
 
@@ -183,12 +180,13 @@ curl http://localhost:8080/health   # → {"status":"ok"}
 | NanoBot Runtime 适配器 | ✅ 已上线 |
 | Shopify MCP 工具调用 | ✅ 已上线 |
 | `/health` + Prometheus `/metrics` | ✅ 已上线 |
+| 统一 `docker-compose.yml` | ✅ 已上线 |
 | 群聊 @提及过滤 | 🔄 规划中 |
 | 富媒体（图片、文件、语音） | 🔄 CBECOps Pro |
 | 多店铺路由 | 🔄 CBECOps Pro |
 | WhatsApp / LINE / 微信渠道 | 🔄 CBECOps Pro |
 | SSO & 团队权限管理 | 🔄 CBECOps Pro |
-| 托管 / 云端部署选项 | 🔄 CBECOps Pro |
+| 托管服务选项 | 🔄 CBECOps Pro |
 
 ---
 
@@ -196,7 +194,10 @@ curl http://localhost:8080/health   # → {"status":"ok"}
 
 ```
 im-agent-bridge/
+├── docker-compose.yml       # ← 一键全栈启动
+├── quickstart.sh            # ← 首次部署引导脚本
 ├── gateway/                 # Rust Gateway — 路由、会话、Runtime 调度
+│   └── Dockerfile           # 多阶段 Rust 构建
 ├── deploy/
 │   ├── edge-server/         # Matterbridge — Telegram ↔ Gateway 中继
 │   ├── internal-server/     # NanoBot Runtime + Shopify MCP 配置
@@ -211,7 +212,7 @@ im-agent-bridge/
 
 ## 需要更多能力？— CBECOps Pro
 
-开源骨架**永久免费**，适合单 Telegram 渠道、单 Shopify 店铺的生产环境。当您的业务规模扩大，**[CBECOps Pro](https://cbec.injoys.ai/)** 提供团队级增强能力：
+开源骨架**永久免费**，适合单 Telegram 渠道、单 Shopify 店铺的生产环境。当您的业务规模扩大，**[CBECOps Pro](https://cbec.injoys.ai/)** 提供团队级增强：
 
 | | 社区版（开源） | CBECOps Pro | Enterprise |
 |--|--------------|-------------|------------|
