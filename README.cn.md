@@ -1,8 +1,8 @@
 # IM-Agent-Bridge
 
-**您的 Shopify 店铺 7×24 小时 AI 助理——在 Telegram 里查订单、盯库存、写客服回复，每周为您节省数小时重复工作。全部自托管，数据始终留在您自己的服务器上。**
+**您的 Shopify 店铺 7×24 小时 AI 助理——在 Telegram 里查订单、盯库存、写专业客服回复，每周为您节省数小时重复工作。全部自托管，数据和凭证始终留在您自己的服务器上。**
 
-专为跨境 Shopify 卖家打造——无需依赖云平台，无 SaaS 按量计费，客户数据不出境。
+专为跨境 Shopify 卖家打造——真实 Shopify MCP 工具调用，无云平台锁定，无 SaaS 按量计费，客户数据不出境。
 
 [English README](README.md) · [官网](https://cbec.injoys.ai/) · [反馈 Issue](../../issues)
 
@@ -59,7 +59,7 @@ Bot：   以下是一封专业、隐私安全的回复草稿：
         您的店铺团队
 ```
 
-> 以上为 NanoBot + Shopify MCP 的真实输出。Bot 调用的是 Shopify 官方 API，返回干净、可操作的回复。
+> 以上为 NanoBot + Shopify MCP 的真实输出。Bot 调用的是 Shopify 官方 API，秒速返回干净、可操作的回复。
 
 **真实测试会话截图：**
 
@@ -121,7 +121,7 @@ cd im-agent-bridge
 ./quickstart.sh
 ```
 
-脚本会引导您复制 `.env` 配置文件并一键拉起所有服务。
+脚本会帮您复制 `.env` 配置文件并启动所有服务。
 
 启动完成后验证：
 
@@ -130,6 +130,8 @@ curl http://localhost:8080/health   # → {"status":"ok"}
 ```
 
 打开 Telegram，向 Bot 发消息，开始使用。
+
+> **提示**：如果您的版本中尚未包含 `./quickstart.sh`，请使用下方**方式 B**。
 
 ---
 

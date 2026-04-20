@@ -1,8 +1,8 @@
 # IM-Agent-Bridge
 
-**Your Shopify store's 24/7 AI assistant on Telegram — saves you hours every week on order lookups, low-stock alerts, and customer replies. Fully self-hosted. All your data stays on your own server.**
+**Your Shopify store's 24/7 AI assistant on Telegram — saves you hours every week on order lookups, low-stock alerts, and professional customer replies. Fully self-hosted. All your data and credentials stay on your own server.**
 
-Built specifically for cross-border Shopify sellers who need reliable AI automation without vendor lock-in, SaaS fees, or sending customer data to the cloud.
+Built for cross-border Shopify sellers who want reliable, real Shopify MCP tool calls without vendor lock-in, SaaS fees, or sending customer data to the cloud.
 
 [中文文档](README.cn.md) · [Official Website](https://cbec.injoys.ai/) · [Report an Issue](../../issues)
 
@@ -60,7 +60,7 @@ Bot:   Here's a professional, PII-safe reply you can send:
        Your Store Team
 ```
 
-> These are real outputs from NanoBot + Shopify MCP. The bot calls actual Shopify APIs and returns clean, actionable responses.
+> These are real outputs from NanoBot + Shopify MCP. The bot calls actual Shopify APIs and returns clean, actionable responses in seconds.
 
 **Screenshots from a live test session:**
 
@@ -122,7 +122,7 @@ cd im-agent-bridge
 ./quickstart.sh
 ```
 
-The script will guide you through copying `.env` files and starting all services with one command.
+The script helps copy `.env` files and starts all services.
 
 After setup, test with:
 
@@ -131,6 +131,8 @@ curl http://localhost:8080/health   # → {"status":"ok"}
 ```
 
 Then open Telegram and start chatting with your bot.
+
+> **Note**: If `./quickstart.sh` is not yet available in your version, please use **Option B** below.
 
 ---
 
